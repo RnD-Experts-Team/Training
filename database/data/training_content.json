@@ -1,0 +1,1403 @@
+{
+  "sections": [
+    {
+      "title": "Introduction",
+      "icon": "BookOpen",
+      "order": 0,
+      "pie_content_review": "5 to 10 Mins",
+      "screen_to_shoulder": "-",
+      "hands_on_shifts": "-",
+      "categories": [
+        {
+          "title": "Orientation",
+          "order": 0,
+          "items": [
+            {
+              "title": "Get to know them",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Every Day Routine",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Basic Store Cleaning Instructions and Food Safety",
+              "content": "Wearing a clean uniform contributes to a positive image of Little Caesars for our guests. Arrive ready to work in your uniform.\n\n* Little Caesars t-shirts or polo shirts must be worn when working. No colored or print shirts are to be worn under or over the uniform.\n* Dark blue jeans or professional-length shorts are acceptable. No rips, tears, or holes in pants allowed.\n* A hat must be worn at all times while on the clock. Long hair that falls below your shoulders should be restrained to keep it from coming into contact with food.\n* Shoes must be clean, have rubber soles and be in good repair. No open-top shoes, sandals, heels or other types of shoes are acceptable.\n* Aprons should be worn at all food prep stations.",
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Pizza Life Cycle in General",
+              "content": null,
+              "importance": "highly_important",
+              "order": 3,
+              "media": [],
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Product Prep",
+      "icon": "Boxes",
+      "order": 1,
+      "pie_content_review": "5 to 10 Mins",
+      "screen_to_shoulder": "20 Mins",
+      "hands_on_shifts": "1 Shift",
+      "categories": [
+        {
+          "title": "Station Overview",
+          "order": 0,
+          "items": [
+            {
+              "title": "Verify the crew member has reviewed Product Prep Station Training",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain all equipment and smallwares for the station; show where to find backup smallwares",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain all safety information for the station",
+              "content": null,
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "title": "Topping Prep",
+          "order": 1,
+          "items": [
+            {
+              "title": "Demonstrate the correct procedure for opening canned products",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain how shelf lives work and which color Day Dots to use",
+              "content": "If pineapple has a 7 day shelf life and is prepped Tuesday afternoon, a Monday Day Dot would be used. Always count the current day you are prepping in the shelf life.",
+              "importance": "highly_important",
+              "order": 1,
+              "media": [
+                {
+                  "type": "link",
+                  "url": "https://littlecaesars.read.inkling.com/a/b/0bf43ed9b111402dbf325c40a0006142/p/5333354227b54ce7bcd2237b3060e67a",
+                  "label": null
+                },
+                {
+                  "type": "link",
+                  "url": "https://littlecaesars.read.inkling.com/a/b/0bf43ed9b111402dbf325c40a0006142/p/38a076892bce4f7db01cf23c855e5107",
+                  "label": null
+                }
+              ],
+              "children": []
+            },
+            {
+              "title": "Demonstrate where to place a Day Dot sticker on product prepped into a plastic container. Explain why the Day Dot is placed there.",
+              "content": "The Day Dot is placed on the lip of the container, not the lid so that it doesn't get swapped with other product if the lid is removed.",
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain what the shelf life is for unopened Parmesan Cheese",
+              "content": "10 days",
+              "importance": "highly_important",
+              "order": 3,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain how to determine the amount of preps needed and where to find this information in the store",
+              "content": "This information is found on the Daily Organization (DO) Sheet",
+              "importance": "highly_important",
+              "order": 4,
+              "media": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "title": "Sauce Prep",
+          "order": 2,
+          "items": [
+            {
+              "title": "Demonstrate how to properly make pizza sauce",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain why we always make sauce in a baine marie",
+              "content": "This allows the sauce and spices to mix together better",
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain how long sauce must sit before being used and why",
+              "content": "Sauce must marinate in the walk-in for a minimum of 18 hours before used to allow the spices to marinate and give it our signature flavor!",
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to properly fill a Crazy Sauce cup",
+              "content": null,
+              "importance": "highly_important",
+              "order": 3,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain Crazy Sauce cup shelf life and holding procedures, and why they must be discarded at the end of the day if being held at room temperature",
+              "content": "Crazy Sauce cups have the same expiration as the original batch of sauce and should be held under refrigeration. If they are held at room temperature, they must be discarded at the end of the day for food safety reasons.",
+              "importance": "highly_important",
+              "order": 4,
+              "media": [],
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Pressouts",
+      "icon": "Croissant",
+      "order": 2,
+      "pie_content_review": "10 to 15 Mins",
+      "screen_to_shoulder": "60 Mins",
+      "hands_on_shifts": "2 Shifts",
+      "categories": [
+        {
+          "title": "Station Overview",
+          "order": 0,
+          "items": [
+            {
+              "title": "Verify the crew member has reviewed Pressout Station Training",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain all equipment and smallwares for the station; show where to find backup smallwares",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain all safety information for the station",
+              "content": null,
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "title": "Round & Crazy Bread Pressouts",
+          "order": 1,
+          "items": [
+            {
+              "title": "Demonstrate the proper way to use the pan oiler",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain how far in advance you can oil pans",
+              "content": "You can oil pans up to 24 hours in advance in room temprature\\Never put in the walk-in",
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to remove a doughball from a tray and transfer it to an oiled pan; keeping the round shape",
+              "content": null,
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain why dough should reach 50 degrees before pressing",
+              "content": "This will help bring the doughballs to room temperature and eliminate the \"chill\", helping to keep the pressout from shrinking back towards the center.",
+              "importance": "highly_important",
+              "order": 3,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the proper way to center a doughball in the pan before pressing",
+              "content": null,
+              "importance": "highly_important",
+              "order": 4,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain how long the pressed pizza can be used for",
+              "content": "Pizza sheets can be reused during pressing for up to 2 hours",
+              "importance": "highly_important",
+              "order": 5,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the proper procedure for pressing out a large round doughball",
+              "content": null,
+              "importance": "highly_important",
+              "order": 6,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to properly mark a stack of pressouts with proper expiration",
+              "content": null,
+              "importance": "highly_important",
+              "order": 7,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain the quality characteristics of a good pressout",
+              "content": "• Fits 80 - 90% of the pan\n• No holes, rips, tears or thin spots\n• Properly proofed",
+              "importance": "highly_important",
+              "order": 8,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain how long pressouts must proof before use and how long proofed pressouts are good for",
+              "content": "• Pressouts must proof for a minimum of 30 minutes and are good for 2 hours.\n• After 2 hours, they must be used or discarded.",
+              "importance": "highly_important",
+              "order": 9,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate rotating a stack of pressouts on the projection rack, making sure that the oldest stack of pressouts will be used first.",
+              "content": null,
+              "importance": "highly_important",
+              "order": 10,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate lightly flouring both sides of a Crazy Bread doughball",
+              "content": null,
+              "importance": "highly_important",
+              "order": 11,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain why we use flour for Crazy Bread doughballs",
+              "content": "Flour is used to soak up excess oil",
+              "importance": "highly_important",
+              "order": 12,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to press one tray (2 orders) of Crazy Bread doughballs",
+              "content": null,
+              "importance": "highly_important",
+              "order": 13,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the proper way to cut Crazy Bread pressouts; emphasizing proper quality characteristics",
+              "content": null,
+              "importance": "highly_important",
+              "order": 14,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain how long Crazy Bread pressouts are good for",
+              "content": "• Crazy Bread pressouts (cut) are good for up to an hour and a half (90 minutes)\n• After 90 minutes, they must be used or discarded",
+              "importance": "highly_important",
+              "order": 15,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to properly mark Crazy Bread pressouts with the correct expiration",
+              "content": null,
+              "importance": "highly_important",
+              "order": 16,
+              "media": [],
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Dough & Sauce",
+      "icon": "ChefHat",
+      "order": 3,
+      "pie_content_review": "10 to 15 Mins",
+      "screen_to_shoulder": "90 Mins",
+      "hands_on_shifts": "5 Shifts",
+      "categories": [
+        {
+          "title": "Station Overview",
+          "order": 0,
+          "items": [
+            {
+              "title": "Verify the crew member has reviewed Dough Station Training",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain all equipment and smallwares for the station; show where to find backup smallwares",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain all safety information for the station",
+              "content": null,
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "title": "Round & Crazy Bread dough",
+          "order": 1,
+          "items": [
+            {
+              "title": "Demonstrate how to prepare a batch of round/Crazy Bread dough",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain how long we let the dough mix and water sit and why",
+              "content": "The dough mix must be left in the water for 3 minutes to activate the yeast",
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the proper way to weigh, cut and roll one batch of round doughballs (or use the divider/rounder)",
+              "content": null,
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain the difference between round and crazy bread doughball sizes",
+              "content": "• Round doughballs weigh 18 oz\n• Crazy Bread doughballs weigh 10 oz",
+              "importance": "highly_important",
+              "order": 3,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to properly place round doughballs in pans, or on trays for overflow dough",
+              "content": null,
+              "importance": "highly_important",
+              "order": 4,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain what the productivity standard is for cutting and rolling one batch of dough",
+              "content": null,
+              "importance": "highly_important",
+              "order": 5,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain how long deep dish pressouts must age in the walk-in and what their expiration time is; show how to use Day Dots to mark a deep dish pan lid with ready and expiration times",
+              "content": "Deep dish pressouts must age in the walk-in for a minimum of 13 hours before being used and expire after 48 hours",
+              "importance": "highly_important",
+              "order": 6,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain where the Day Dot should be placed if round/Crazy Bread dough his made before or after 3 PM",
+              "content": "• Before 3 PM, the Day Dot is placed in the bottom left corner of the tray, facing up\n• After 3 PM, the Day Dot is placed in the bottom right corner of the tray, facing down",
+              "importance": "highly_important",
+              "order": 7,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain the difference between round and crazy bread doughball sizes",
+              "content": "• Round doughballs weigh 18 oz\n• Crazy bread doughballs weigh 10 oz",
+              "importance": "highly_important",
+              "order": 8,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to properly use the dough sheets to cover the dough",
+              "content": null,
+              "importance": "highly_important",
+              "order": 9,
+              "media": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "title": "Deep Dish Dough",
+          "order": 2,
+          "items": [
+            {
+              "title": "Demonstrate how to properly place deep dish doughballs on a dough tray",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain the next step in the deep dish dough process is to immediately press out the doughballs and place into oiled pans",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Pizza Dress (Making)",
+      "icon": "Pizza",
+      "order": 4,
+      "pie_content_review": "15 to 20 Mins",
+      "screen_to_shoulder": "30 Mins",
+      "hands_on_shifts": "2 Shifts",
+      "categories": [
+        {
+          "title": "Station Overview",
+          "order": 0,
+          "items": [
+            {
+              "title": "Verify the crew member has reviewed Pizza Dress Station Training",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain all equipment and smallwares for the station; show where to find backup smallwares",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Product Prep",
+              "content": null,
+              "importance": "highly_important",
+              "order": 2,
+              "media": [
+                {
+                  "type": "link",
+                  "url": "https://littlecaesars.read.inkling.com/a/b/5e16ec6fe04040d2b903c62f123de44e/p/8d50291642224d718af0de7605ae2644",
+                  "label": null
+                }
+              ],
+              "children": []
+            },
+            {
+              "title": "Explain all safety information for the station",
+              "content": null,
+              "importance": "highly_important",
+              "order": 3,
+              "media": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "title": "Round Sauce, Cheese & Pepperoni",
+          "order": 1,
+          "items": [
+            {
+              "title": "Demonstrate how to properly hand stretch a round pressout prior to dress and explain why this is done",
+              "content": "• Hand stretch from the outside of the pressout. Do not stretch from the center - this will cause thin spots\n• All pressouts must fit the pan (cover 100% of the pan) before you begin to put toppings on",
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain when and why we use a make ring",
+              "content": "Make rings are used on all round pizzas (non-thin crust). They are used to keep the crust clean and as a template for where to put sauce, cheese and toppings",
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the proper way to sauce a round pizza",
+              "content": null,
+              "importance": "highly_important",
+              "order": 2,
+              "media": [
+                {
+                  "type": "link",
+                  "url": "https://littlecaesars.read.inkling.com/a/b/c241ac22d12745ffb9bfb2c916a1f763/p/77390fa70581499bb0646ddbdf92beef#bf5ee0af43b6472e8a0a2b88c17d5767",
+                  "label": null
+                }
+              ],
+              "children": []
+            },
+            {
+              "title": "Explain why sauce thin spots on a pressout are bad",
+              "content": "Thin spots cause bubbles on our pizzas",
+              "importance": "highly_important",
+              "order": 3,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the correct way to hand-fill a cheese cup",
+              "content": null,
+              "importance": "highly_important",
+              "order": 4,
+              "media": [
+                {
+                  "type": "link",
+                  "url": "https://littlecaesars.read.inkling.com/a/b/c241ac22d12745ffb9bfb2c916a1f763/p/dd5d7a26161f4b55b68648170a6db8dd#d8dfb014d1784100ab521ea5a3449fe4",
+                  "label": null
+                }
+              ],
+              "children": []
+            },
+            {
+              "title": "Explain which cheese cup is used for each type of round pizza",
+              "content": "• Classic, specialty and custom rounds = heaping #8 cup (level blue for cube cheese)\n• ExtraMostBestest round = heaping gold cup (level gold for cube cheese)",
+              "importance": "highly_important",
+              "order": 5,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the proper way to distribute cheese on a round pizza (NO SHAKING)",
+              "content": null,
+              "importance": "highly_important",
+              "order": 6,
+              "media": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "title": "Deep Dish",
+          "order": 2,
+          "items": [
+            {
+              "title": "Demonstrate the correct way to sauce a deep dish pizza",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the correct way to distribute cheese on a deep dish pizza",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain the spec for extra sauce and extra cheese for round and deep dish pizzas",
+              "content": "• Extra Sauce: Round = Add a half plastic ladle of sauce, Deep Dish = (Add 1 oz.) Heaping deep dish ladle per side\n• Extra Cheese: Round = Add a Heaping #3 cup, Deep Dish = Add a Heaping #3 cup (split between both sides). Extra cheese is always added over toppings",
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain what each color code means on the Caesar Vision make line command screen and what action needs to be taken",
+              "content": "• Red = under projection  - bump number of pizzas into the oven\n• Green = at projections - no action required\n• Yellow = over projections - no action required",
+              "importance": "highly_important",
+              "order": 3,
+              "media": [
+                {
+                  "type": "link",
+                  "url": "https://littlecaesars.read.inkling.com/a/b/c241ac22d12745ffb9bfb2c916a1f763/p/9aac2ba55af645e99e87f790564a225c",
+                  "label": null
+                }
+              ],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to bump an item on the make line command screen",
+              "content": null,
+              "importance": "highly_important",
+              "order": 4,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain why we don't slam pizzas on the Ready Rack",
+              "content": "This will cause toppings to shift and if not fixed before going into the oven, the product will not meet our quality characteristics of a perfect pizza",
+              "importance": "highly_important",
+              "order": 5,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to properly use the Ready Rack timer",
+              "content": null,
+              "importance": "highly_important",
+              "order": 6,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain how long pizzas can be held for on the Ready Rack",
+              "content": "• Round = 1 hour\n• Deep Dish = 30 minutes",
+              "importance": "highly_important",
+              "order": 7,
+              "media": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "title": "Custom & Specialty Pizzas",
+          "order": 3,
+          "items": [
+            {
+              "title": "Explain how to count toppings to determine which scoop to use.",
+              "content": "Pepperoni and all sprinkle toppings are included when adding up the topping count. Extra toppings and extra cheese count are also counted.",
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to fill a topping scoop",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain which topping scoops are used for 1-2 topping round pizzas",
+              "content": "On a 1-2 topping round pizza the blue scoop is used for all toppings, except bacon, pineapple and mushroom (fresh and canned). Bacon, pineapple and mushroom use the red scoop (2 red scoops for fresh mushrooms).",
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain which topping scoops are used for 3-4 topping round pizzas",
+              "content": "On a 3-4 topping round pizza the red scoop is used for all toppings, except bacon, pineapple and mushroom (fresh and canned). Bacon, pineapple and mushroom use the white scoop (2 white scoops for fresh mushrooms).",
+              "importance": "highly_important",
+              "order": 3,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain which topping scoops are used for round pizzas with 5 or more toppings",
+              "content": "On a round pizza with 5 or more toppings, the white scoop is used for all toppings (2 white scoops for fresh mushrooms).",
+              "importance": "highly_important",
+              "order": 4,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain which topping scoop is used for extra of a topping",
+              "content": "When a customer orders extra of a topping on either a round or a deep dish pizza, the white scoop is used for all toppings",
+              "importance": "highly_important",
+              "order": 5,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to distribute toppings on a custom or specialty pizza",
+              "content": null,
+              "importance": "highly_important",
+              "order": 6,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain what specialty pizzas are available and where to find the build information",
+              "content": "3 Meat Treat, 5 Meat Feast, Hula Hawaiian, Ultimate Supreme and Veggie. The build specs can be found on the job helpers at the station",
+              "importance": "highly_important",
+              "order": 7,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain which topping scoops are used for 1-3 topping and 4 or more topping deep dish pizzas.",
+              "content": "1-3 topping deep dish pizzas use the red scoop for all toppings (2 red scoops for fresh mushrooms). 4 or more topping deep dish pizzas use the green scoop for all toppings (2 green scoops for fresh mushrooms).",
+              "importance": "highly_important",
+              "order": 8,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain where custom orders appear on the make line command screen and how to read the order",
+              "content": "All custom orders appear on the right side of the command screen. Be sure to explain half, light and extra topping amounts as well has placing toppings on the whole pizza vs. half of the pizza.",
+              "importance": "highly_important",
+              "order": 9,
+              "media": [],
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Landing",
+      "icon": "UtensilsCrossed",
+      "order": 5,
+      "pie_content_review": "10 to 15 Mins",
+      "screen_to_shoulder": "20 Mins",
+      "hands_on_shifts": "3 Shifts",
+      "categories": [
+        {
+          "title": "Station Overview",
+          "order": 0,
+          "items": [
+            {
+              "title": "Explain all equipment and smallwares for the station; show where to find backup smallwares",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain all safety information for the station",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain ready-to-eat products and the importance of no bare-hand contact",
+              "content": "Ready-to-eat products are items that have been baked and are ready to serve to the customer. They should never be touched by bare hands. Only smallwares, such as spatulas, cutters and tongs should be used to transfer or move these items.",
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "title": "Pizza Landing",
+          "order": 1,
+          "items": [
+            {
+              "title": "Explain the uses of red-handled vs. white-handled cutters",
+              "content": "• Red-handled cutters are used for any meat products.\n• White-handled cutters are used for veggie (non-meat) and cheese only products.",
+              "importance": "highly_important",
+              "order": 0,
+              "media": [
+                {
+                  "type": "link",
+                  "url": "https://littlecaesars.read.inkling.com/a/b/38d64c28a71949d18f6373da06fec7e7/p/aa28b75df2af4646acbe5fb182c8ac9c",
+                  "label": null
+                }
+              ],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the correct way to use the pan gripper and spatula to land products",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain the quality bake characteristics of a round pizza",
+              "content": "• Toppings evenly distributed\n• Crust is golden brown\n• Cheese has golden brown speckles\n• Cut into 8 even slices\n• Cut all the way through\n• No bubbles",
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain what to do if a pizza reaches the end of the oven undercooked",
+              "content": "If the pizza is undercooked, put the product back into the oven until it is golden brown all the way around!",
+              "importance": "highly_important",
+              "order": 3,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain which boxes are used for which types of pizzas",
+              "content": null,
+              "importance": "highly_important",
+              "order": 4,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the proper way to cut a round pizza",
+              "content": null,
+              "importance": "highly_important",
+              "order": 5,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain why it is not acceptable to cut pizzas on a stack of boxes",
+              "content": "Cutting on stacks of boxes can cause pizzas to not be cut all the way through",
+              "importance": "highly_important",
+              "order": 6,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain hold times for Hot-N-Ready pizzas",
+              "content": "Hot-N-Ready pizzas are good for 30 minutes in the Cres Cor",
+              "importance": "highly_important",
+              "order": 7,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate marking a round, cheese-only pizza with the correct expiration time",
+              "content": null,
+              "importance": "highly_important",
+              "order": 8,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the proper way land, cut and package a deep dish pizza",
+              "content": null,
+              "importance": "highly_important",
+              "order": 9,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to use the Landing Command Screen",
+              "content": null,
+              "importance": "highly_important",
+              "order": 10,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to apply a Caesar Vision labels and make tickets to pizza boxes",
+              "content": null,
+              "importance": "highly_important",
+              "order": 11,
+              "media": [
+                {
+                  "type": "link",
+                  "url": "https://littlecaesars.read.inkling.com/a/b/38d64c28a71949d18f6373da06fec7e7/p/89ca3cd8a572489fa33b7850333e98f4",
+                  "label": null
+                }
+              ],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to apply tamper-evident labels to pizza boxes",
+              "content": null,
+              "importance": "highly_important",
+              "order": 12,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain what the letter \"P\" printed on a Caesar Vision label/make ticket means",
+              "content": "The letter P means it is Portal eligible",
+              "importance": "highly_important",
+              "order": 13,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain what it means for an order to be Portal eligible",
+              "content": "Portal eligible orders are digital orders that qualify, based on products, to be loaded into the Pizza Portal for quick, easy pickup by the customer.  In order to qualify, the order must be no more than 4 pizzas. If the order has more than 2 pizzas, it will need 2 compartments.",
+              "importance": "highly_important",
+              "order": 14,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the proper procedures for wasting products",
+              "content": null,
+              "importance": "highly_important",
+              "order": 15,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate where to place Hot-N-Ready items and custom (non-Portal) orders in the Cres Cor",
+              "content": null,
+              "importance": "highly_important",
+              "order": 16,
+              "media": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "title": "Crazy bread & Sides Landing",
+          "order": 2,
+          "items": [
+            {
+              "title": "Explain the proper bake characteristics of Crazy Bread, Italian Cheese Bread and Caesar Wings",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to properly land an order of Crazy Bread, showing proper application of Crazy Bread Spread and Parmesan cheese",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the correct way to stack Crazy Bread on the quilt sheet and how to package in the Crazy Bread bag",
+              "content": null,
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain the hold time for Crazy Bread",
+              "content": "Orders of Crazy Bread are good for 30 minutes in the Cres Cor",
+              "importance": "highly_important",
+              "order": 3,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to mark a Crazy Bread bag for expiration (apply a Caesar Vision label)",
+              "content": null,
+              "importance": "highly_important",
+              "order": 4,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to apply Crazy Bread Spread to an Italian Cheese Bread",
+              "content": null,
+              "importance": "highly_important",
+              "order": 5,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the proper landing and cutting procedures for Italian Cheese Bread",
+              "content": null,
+              "importance": "highly_important",
+              "order": 6,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the proper way to package Caesar Wings",
+              "content": null,
+              "importance": "highly_important",
+              "order": 7,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain the maximum hold time for Caesar Wings when they are properly held in the Cres Cor",
+              "content": "Caesar Wings are good for 3 hours, un-sauced, in the Cres Cor",
+              "importance": "highly_important",
+              "order": 8,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate where to place side items in the Cres Cor",
+              "content": null,
+              "importance": "highly_important",
+              "order": 9,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to apply tamper evident labels to sides",
+              "content": null,
+              "importance": "highly_important",
+              "order": 10,
+              "media": [],
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Dishwashing",
+      "icon": "Droplets",
+      "order": 6,
+      "pie_content_review": "5 to 10 Mins",
+      "screen_to_shoulder": "15 Mins",
+      "hands_on_shifts": "1 Shift",
+      "categories": [
+        {
+          "title": "Station Overview",
+          "order": 0,
+          "items": [
+            {
+              "title": "Verify the crew member has reviewed Dishwashing Station Training",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain all equipment and chemicals for the station; show where to find backup items",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain all safety information for the station",
+              "content": null,
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain why we always use a non-skid mat at the station",
+              "content": "The non-skid mat is used for safety to protect employees from a slip and fall accident",
+              "importance": "highly_important",
+              "order": 3,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to properly set up the 3-compartment sink",
+              "content": null,
+              "importance": "highly_important",
+              "order": 4,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain the proper temperature of the water for each area of the 3-compartment sink",
+              "content": "• Wash = 110 ºF\n• Rinse = 110 ºF\n• Sanitize = 75 - 85 ºF",
+              "importance": "highly_important",
+              "order": 5,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain what the correct Parts Per Million (PPM) is for the sanitizer",
+              "content": "200 PPM",
+              "importance": "highly_important",
+              "order": 6,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to use a test strip to check the concentration of the sanitizer",
+              "content": null,
+              "importance": "highly_important",
+              "order": 7,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain how often the water needs to be changed in the sink and why it must be changed that often",
+              "content": "• The wash and rinse water should be changed whenever the temperature falls below 100 ºF, or whenever it becomes dirty. Sanitizer solution must be changed when it falls below 100 PPM.\n• You never want to wash dishes in dirty water. The sanitizer solution becomes ineffective when it falls below 100 PPM concentration.",
+              "importance": "highly_important",
+              "order": 8,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate the proper procedure for washing dishes in the 3-compartment sink Include all dish types; pans, plastic containers, smallwares, etc.",
+              "content": null,
+              "importance": "highly_important",
+              "order": 9,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain where to put sharp objects (i.e. pizza cutters) before and after washing",
+              "content": "Sharp objects should never be left in the wash compartment unattended",
+              "importance": "highly_important",
+              "order": 10,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain how long dishes must stay in the sanitizer solution",
+              "content": "Dishes must stay in the sanitizer solution for a minimum of 1 minute. It may be necessary to rotate larger dishes to ensure all areas are sanitized.",
+              "importance": "highly_important",
+              "order": 11,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain how often we wash, rinse and sanitize smallwares (utensils) for prepping and serving food",
+              "content": "Every 4 hours of food contact/use, or more often if required",
+              "importance": "highly_important",
+              "order": 12,
+              "media": [],
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Customer Service",
+      "icon": "ShoppingCart",
+      "order": 7,
+      "pie_content_review": "20 to 25 Mins",
+      "screen_to_shoulder": "30 Mins",
+      "hands_on_shifts": "2 Shifts",
+      "categories": [
+        {
+          "title": "Station Overview",
+          "order": 0,
+          "items": [
+            {
+              "title": "Verify the crew member has reviewed Customer Service Station Training",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain all equipment for the station; show where to find backup items such as register tape, Caesar Dips, Crazy Sauce Cups, etc.",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain the Little Caesars Customer Promise",
+              "content": "This is our job description. This focuses on the 4 main categories a customer is looking for: Customer service, product quality, speed of service and consistency.",
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain why \"Two deep is too deep\"",
+              "content": "Two customers in line is too many. If this happens, you should call for a bump-n-slide to open another register and help the customer",
+              "importance": "highly_important",
+              "order": 3,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain the Remedy Process and what their role is in the step of the process",
+              "content": "• Listen\n• Apologize\n• Decide on a remedy\n• Take action\n• Follow up",
+              "importance": "highly_important",
+              "order": 4,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to handle a customer complaint, \"My order is wrong. What can you do about it?\"",
+              "content": null,
+              "importance": "highly_important",
+              "order": 5,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to satisfy a customer who has been waiting too long",
+              "content": null,
+              "importance": "highly_important",
+              "order": 6,
+              "media": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "title": "Front Counter",
+          "order": 1,
+          "items": [
+            {
+              "title": "Demonstrate a good customer interaction at the front counter, including a proper greeting when they enter the store - don't forget the smile!",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to suggestively sell and explain why we do this",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain why it is important to know product descriptions",
+              "content": "In order to explain to the customer a product, especially a Limited Time Offer (LTO), or if a customer has a question about what is on a specialty pizza, the person at the front counter must know the specifics of the product to better explain and inform the customer.",
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to properly enter a customer's order into Caesar Vision",
+              "content": null,
+              "importance": "highly_important",
+              "order": 3,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how to complete an order and take payment",
+              "content": null,
+              "importance": "highly_important",
+              "order": 4,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate where and how to properly pull product from the Cres Cor following FIFO (First In, First Out)",
+              "content": null,
+              "importance": "highly_important",
+              "order": 5,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain how to do a cash pull",
+              "content": null,
+              "importance": "highly_important",
+              "order": 6,
+              "media": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "title": "Telephone & Drive-Thru (Pick-Up Window)",
+          "order": 2,
+          "items": [
+            {
+              "title": "Demonstrate a proper phone greeting",
+              "content": null,
+              "importance": "highly_important",
+              "order": 0,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate suggestively selling an item over the phone",
+              "content": null,
+              "importance": "highly_important",
+              "order": 1,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate entering a phone and/or drive-thru order in Caesar Vision",
+              "content": null,
+              "importance": "highly_important",
+              "order": 2,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Demonstrate how special orders are handled at the drive-thru/pick-up window",
+              "content": null,
+              "importance": "highly_important",
+              "order": 3,
+              "media": [],
+              "children": []
+            },
+            {
+              "title": "Explain the service time goal for pick-up window",
+              "content": null,
+              "importance": "highly_important",
+              "order": 4,
+              "media": [],
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
