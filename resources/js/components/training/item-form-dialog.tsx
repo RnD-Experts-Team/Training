@@ -26,6 +26,13 @@ import { store, update } from '@/routes/training/items';
 import { IMPORTANCE_OPTIONS } from '@/types/training';
 import type { ChecklistItem, Importance } from '@/types/training';
 
+type ImportanceChoice = Importance | 'none';
+
+const IMPORTANCE_CHOICES: { value: ImportanceChoice; label: string }[] = [
+    { value: 'none', label: 'None' },
+    ...IMPORTANCE_OPTIONS,
+];
+
 export function ItemFormDialog({
     categoryId,
     item,
@@ -41,12 +48,17 @@ export function ItemFormDialog({
     const form = useForm({
         title: item?.title ?? '',
         content: item?.content ?? '',
-        importance: (item?.importance ?? 'highly_important') as Importance,
+        importance: (item?.importance ?? 'none') as ImportanceChoice,
         parent_id: item?.parent_id ?? parentId,
     });
 
     function submit(event: FormEvent) {
         event.preventDefault();
+        // The "None" sentinel maps to a null importance on the server.
+        form.transform((data) => ({
+            ...data,
+            importance: data.importance === 'none' ? null : data.importance,
+        }));
         const options = {
             preserveScroll: true,
             onSuccess: () => {
@@ -120,7 +132,10 @@ export function ItemFormDialog({
                         <Select
                             value={form.data.importance}
                             onValueChange={(value) =>
-                                form.setData('importance', value as Importance)
+                                form.setData(
+                                    'importance',
+                                    value as ImportanceChoice,
+                                )
                             }
                         >
                             <SelectTrigger
@@ -130,7 +145,7 @@ export function ItemFormDialog({
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {IMPORTANCE_OPTIONS.map((option) => (
+                                {IMPORTANCE_CHOICES.map((option) => (
                                     <SelectItem
                                         key={option.value}
                                         value={option.value}

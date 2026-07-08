@@ -124,6 +124,7 @@ class TraineeProgress
                 'id' => $category->id,
                 'title' => $category->title,
                 'description' => $category->description,
+                'color' => $category->color,
                 'items' => $category->items->map($mapItem)->all(),
             ])->all(),
         ])->all();

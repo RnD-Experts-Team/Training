@@ -63,6 +63,48 @@ export function MediaManager({ item }: { item: ChecklistItem }) {
                 <ul className="flex flex-wrap gap-2">
                     {media.map((m) => {
                         const Icon = TYPE_ICON[m.type];
+                        const url = m.display_url ?? '#';
+
+                        function removeButton(overlay = false) {
+                            return (
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        router.delete(destroy(m.id).url, {
+                                            preserveScroll: true,
+                                        })
+                                    }
+                                    className={
+                                        overlay
+                                            ? 'absolute -top-1.5 -right-1.5 rounded-full border bg-background p-0.5 text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:text-destructive'
+                                            : 'rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
+                                    }
+                                    aria-label="Remove media"
+                                >
+                                    <Trash2 className="size-3.5" />
+                                </button>
+                            );
+                        }
+
+                        if (m.type === 'image') {
+                            return (
+                                <li key={m.id} className="group relative">
+                                    <a
+                                        href={url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        <img
+                                            src={url}
+                                            alt={m.label || 'Attachment'}
+                                            loading="lazy"
+                                            className="h-16 w-20 rounded-md border object-cover"
+                                        />
+                                    </a>
+                                    {removeButton(true)}
+                                </li>
+                            );
+                        }
 
                         return (
                             <li
@@ -71,7 +113,7 @@ export function MediaManager({ item }: { item: ChecklistItem }) {
                             >
                                 <Icon className="size-3.5 text-muted-foreground" />
                                 <a
-                                    href={m.display_url ?? '#'}
+                                    href={url}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="max-w-44 truncate hover:underline"
@@ -79,18 +121,7 @@ export function MediaManager({ item }: { item: ChecklistItem }) {
                                     {m.label || m.url || m.type}
                                 </a>
                                 <ExternalLink className="size-3 text-muted-foreground" />
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        router.delete(destroy(m.id).url, {
-                                            preserveScroll: true,
-                                        })
-                                    }
-                                    className="rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                                    aria-label="Remove media"
-                                >
-                                    <Trash2 className="size-3.5" />
-                                </button>
+                                {removeButton()}
                             </li>
                         );
                     })}

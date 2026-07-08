@@ -2,7 +2,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Plus, Users } from 'lucide-react';
 import Heading from '@/components/heading';
 import { CompletionBar } from '@/components/training/completion-bar';
-import { StarRating } from '@/components/training/star-rating';
+import { RatingMeter } from '@/components/training/rating-meter';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -122,21 +122,11 @@ export default function TraineesIndex() {
                                                     total={trainee.stats.total}
                                                 />
                                             </div>
-                                            <div className="flex shrink-0 items-center gap-1.5">
-                                                <StarRating
-                                                    value={
-                                                        trainee.stats
-                                                            .average_rating
-                                                            ? Math.round(
-                                                                  trainee.stats
-                                                                      .average_rating,
-                                                              )
-                                                            : null
-                                                    }
-                                                    readOnly
-                                                    size="sm"
-                                                />
-                                            </div>
+                                            <RatingMeter
+                                                value={
+                                                    trainee.stats.average_rating
+                                                }
+                                            />
                                         </div>
                                     </Link>
                                 </li>

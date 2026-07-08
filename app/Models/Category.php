@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $section_id
  * @property string $title
  * @property string|null $description
+ * @property string|null $color
  * @property int $order
  * @property-read Section $section
  * @property-read Collection<int, ChecklistItem> $items
@@ -24,7 +25,7 @@ class Category extends Model
     use HasFactory;
 
     /** @var list<string> */
-    protected $fillable = ['section_id', 'title', 'description', 'order'];
+    protected $fillable = ['section_id', 'title', 'description', 'color', 'order'];
 
     /**
      * @return BelongsTo<Section, $this>

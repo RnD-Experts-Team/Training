@@ -31,6 +31,10 @@ class MediaUploadTest extends TestCase
         $this->assertNotNull($media->path);
         $this->assertNull($media->url);
         Storage::disk('public')->assertExists($media->path);
+
+        // Managers/admins open the file via an origin-relative public URL.
+        $this->assertStringStartsWith('/storage/', (string) $media->display_url);
+        $this->assertStringContainsString($media->path, (string) $media->display_url);
     }
 
     public function test_super_admin_can_add_a_link(): void
@@ -48,6 +52,8 @@ class MediaUploadTest extends TestCase
         $this->assertSame(MediaType::Link, $media->type);
         $this->assertSame('https://littlecaesars.read.inkling.com/example', $media->url);
         $this->assertNull($media->path);
+        // A link opens at its external URL unchanged.
+        $this->assertSame($media->url, $media->display_url);
     }
 
     public function test_oversized_image_is_rejected(): void

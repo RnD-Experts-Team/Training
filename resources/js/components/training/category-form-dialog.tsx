@@ -15,6 +15,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { CATEGORY_COLORS, CATEGORY_COLOR_CLASSES } from '@/lib/category-colors';
+import { cn } from '@/lib/utils';
 import { store, update } from '@/routes/training/categories';
 import type { Category } from '@/types/training';
 
@@ -28,9 +30,14 @@ export function CategoryFormDialog({
     trigger: ReactNode;
 }) {
     const [open, setOpen] = useState(false);
-    const form = useForm({
+    const form = useForm<{
+        title: string;
+        description: string;
+        color: string | null;
+    }>({
         title: category?.title ?? '',
         description: category?.description ?? '',
+        color: category?.color ?? null,
     });
 
     function submit(event: FormEvent) {
@@ -90,6 +97,40 @@ export function CategoryFormDialog({
                             }
                         />
                         <InputError message={form.errors.description} />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Color</Label>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => form.setData('color', null)}
+                                className={cn(
+                                    'flex size-7 items-center justify-center rounded-full border text-xs text-muted-foreground transition-transform hover:scale-110',
+                                    form.data.color === null &&
+                                        'ring-2 ring-ring ring-offset-2 ring-offset-background',
+                                )}
+                                aria-label="No color"
+                                title="No color"
+                            >
+                                —
+                            </button>
+                            {CATEGORY_COLORS.map((color) => (
+                                <button
+                                    key={color}
+                                    type="button"
+                                    onClick={() => form.setData('color', color)}
+                                    className={cn(
+                                        'size-7 rounded-full transition-transform hover:scale-110',
+                                        CATEGORY_COLOR_CLASSES[color].dot,
+                                        form.data.color === color &&
+                                            'ring-2 ring-ring ring-offset-2 ring-offset-background',
+                                    )}
+                                    aria-label={color}
+                                    title={color}
+                                />
+                            ))}
+                        </div>
+                        <InputError message={form.errors.color} />
                     </div>
                     <DialogFooter>
                         <Button type="submit" disabled={form.processing}>

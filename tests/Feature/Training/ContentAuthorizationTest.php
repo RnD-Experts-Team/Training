@@ -120,4 +120,36 @@ class ContentAuthorizationTest extends TestCase
         $this->assertSame(1, $a->refresh()->order);
         $this->assertSame(0, $b->refresh()->order);
     }
+
+    public function test_item_can_be_created_without_importance(): void
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $category = Category::factory()->create();
+
+        $this->actingAs($admin)->post(route('training.items.store', $category), [
+            'title' => 'No importance set',
+            'importance' => null,
+        ])->assertSessionHasNoErrors();
+
+        $item = ChecklistItem::firstWhere('title', 'No importance set');
+        $this->assertNotNull($item);
+        $this->assertNull($item->importance);
+    }
+
+    public function test_category_color_is_validated(): void
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $section = Section::factory()->create();
+
+        $this->actingAs($admin)->post(route('training.categories.store', $section), [
+            'title' => 'Coloured',
+            'color' => 'emerald',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('emerald', Category::firstWhere('title', 'Coloured')?->color);
+
+        $this->actingAs($admin)->post(route('training.categories.store', $section), [
+            'title' => 'Bad colour',
+            'color' => 'chartreuse',
+        ])->assertSessionHasErrors('color');
+    }
 }

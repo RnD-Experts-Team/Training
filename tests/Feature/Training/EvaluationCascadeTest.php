@@ -112,12 +112,63 @@ class EvaluationCascadeTest extends TestCase
 
     public function test_endpoint_rejects_out_of_range_rating(): void
     {
+        foreach ([101, -1] as $rating) {
+            $this->actingAs($this->manager)
+                ->put(route('trainees.evaluations.update', [$this->trainee, $this->childA]), [
+                    'completed' => true,
+                    'rating' => $rating,
+                    'notes' => 'note',
+                ])
+                ->assertSessionHasErrors('rating');
+        }
+    }
+
+    public function test_completing_requires_a_rating(): void
+    {
         $this->actingAs($this->manager)
             ->put(route('trainees.evaluations.update', [$this->trainee, $this->childA]), [
                 'completed' => true,
-                'rating' => 6,
+                'notes' => 'A note but no score',
             ])
             ->assertSessionHasErrors('rating');
+
+        $this->assertFalse($this->completed($this->childA));
+    }
+
+    public function test_completing_requires_notes(): void
+    {
+        $this->actingAs($this->manager)
+            ->put(route('trainees.evaluations.update', [$this->trainee, $this->childA]), [
+                'completed' => true,
+                'rating' => 50,
+            ])
+            ->assertSessionHasErrors('notes');
+
+        $this->assertFalse($this->completed($this->childA));
+    }
+
+    public function test_uncompleting_does_not_require_rating_or_notes(): void
+    {
+        $this->actingAs($this->manager)
+            ->put(route('trainees.evaluations.update', [$this->trainee, $this->childA]), [
+                'completed' => false,
+            ])
+            ->assertSessionHasNoErrors();
+    }
+
+    public function test_percentage_bounds_are_accepted(): void
+    {
+        foreach ([0, 100] as $rating) {
+            $this->actingAs($this->manager)
+                ->put(route('trainees.evaluations.update', [$this->trainee, $this->childA]), [
+                    'completed' => true,
+                    'rating' => $rating,
+                    'notes' => 'Scored',
+                ])
+                ->assertSessionHasNoErrors();
+
+            $this->assertSame($rating, Evaluation::where('checklist_item_id', $this->childA->id)->value('rating'));
+        }
     }
 
     public function test_unassigned_manager_cannot_evaluate(): void
@@ -127,6 +178,8 @@ class EvaluationCascadeTest extends TestCase
         $this->actingAs($other)
             ->put(route('trainees.evaluations.update', [$this->trainee, $this->childA]), [
                 'completed' => true,
+                'rating' => 80,
+                'notes' => 'note',
             ])
             ->assertForbidden();
     }
@@ -136,12 +189,12 @@ class EvaluationCascadeTest extends TestCase
         $this->actingAs($this->manager)
             ->put(route('trainees.evaluations.update', [$this->trainee, $this->childA]), [
                 'completed' => true,
-                'rating' => 5,
+                'rating' => 90,
                 'notes' => 'Great work',
             ])
             ->assertSessionHasNoErrors();
 
         $this->assertTrue($this->completed($this->childA));
-        $this->assertSame(5, Evaluation::where('checklist_item_id', $this->childA->id)->value('rating'));
+        $this->assertSame(90, Evaluation::where('checklist_item_id', $this->childA->id)->value('rating'));
     }
 }

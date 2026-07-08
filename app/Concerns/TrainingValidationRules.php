@@ -11,6 +11,15 @@ use Illuminate\Validation\Rules\Enum;
 trait TrainingValidationRules
 {
     /**
+     * Allowed category color palette keys (mirrored on the frontend).
+     *
+     * @var list<string>
+     */
+    public const CATEGORY_COLORS = [
+        'slate', 'rose', 'orange', 'amber', 'emerald', 'teal', 'sky', 'violet',
+    ];
+
+    /**
      * @return array<string, array<int, ValidationRule|Enum|string>>
      */
     protected function sectionRules(): array
@@ -33,6 +42,7 @@ trait TrainingValidationRules
         return [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'color' => ['nullable', Rule::in(self::CATEGORY_COLORS)],
         ];
     }
 
@@ -45,7 +55,7 @@ trait TrainingValidationRules
         return [
             'title' => ['required', 'string', 'max:255'],
             'content' => ['nullable', 'string'],
-            'importance' => ['required', new Enum(Importance::class)],
+            'importance' => ['nullable', new Enum(Importance::class)],
             'parent_id' => [
                 'nullable',
                 Rule::exists('checklist_items', 'id')->where('category_id', $categoryId),

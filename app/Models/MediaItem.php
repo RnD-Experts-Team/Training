@@ -50,8 +50,10 @@ class MediaItem extends Model
     }
 
     /**
-     * The resolved URL the frontend renders: the link itself, or the public
-     * URL of the stored file.
+     * The resolved URL the frontend renders: an external link as-is, or the
+     * stored file served from the public disk. Stored files use an
+     * origin-relative path (e.g. /storage/…) so they open regardless of how
+     * the app is reached (host/APP_URL differences).
      */
     public function getDisplayUrlAttribute(): ?string
     {
@@ -59,6 +61,12 @@ class MediaItem extends Model
             return $this->url;
         }
 
-        return $this->path ? Storage::disk('public')->url($this->path) : null;
+        if (! $this->path) {
+            return null;
+        }
+
+        $url = Storage::disk('public')->url($this->path);
+
+        return parse_url($url, PHP_URL_PATH) ?: $url;
     }
 }

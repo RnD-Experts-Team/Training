@@ -2,7 +2,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import {
     Layers,
     ListChecks,
-    Star,
+    Percent,
     Store as StoreIcon,
     UserPlus,
     Users,
@@ -13,7 +13,7 @@ import { StatCard } from '@/components/dashboard/stat-card';
 import { StoreManagement } from '@/components/dashboard/store-management';
 import { UserManagement } from '@/components/dashboard/user-management';
 import { CompletionBar } from '@/components/training/completion-bar';
-import { StarRating } from '@/components/training/star-rating';
+import { RatingMeter } from '@/components/training/rating-meter';
 import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
 import { index as traineesIndex, show as traineeShow } from '@/routes/trainees';
@@ -154,9 +154,13 @@ function ManagerView({
                     icon={Users}
                 />
                 <StatCard
-                    label="Avg rating"
-                    value={managerStats?.average_rating ?? '—'}
-                    icon={Star}
+                    label="Avg score"
+                    value={
+                        managerStats?.average_rating != null
+                            ? `${Math.round(managerStats.average_rating)}%`
+                            : '—'
+                    }
+                    icon={Percent}
                 />
             </div>
 
@@ -201,17 +205,10 @@ function ManagerView({
                                                     total={trainee.stats.total}
                                                 />
                                             </div>
-                                            <StarRating
+                                            <RatingMeter
                                                 value={
                                                     trainee.stats.average_rating
-                                                        ? Math.round(
-                                                              trainee.stats
-                                                                  .average_rating,
-                                                          )
-                                                        : null
                                                 }
-                                                readOnly
-                                                size="sm"
                                             />
                                         </div>
                                     </Link>

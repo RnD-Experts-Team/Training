@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/collapsible';
 import { useSortable } from '@/hooks/use-sortable';
 import type { SortableHandleProps } from '@/hooks/use-sortable';
+import { categoryColorClasses } from '@/lib/category-colors';
+import { cn } from '@/lib/utils';
 import { destroy } from '@/routes/training/categories';
 import { reorder } from '@/routes/training/items';
 import type { Category } from '@/types/training';
@@ -28,6 +30,7 @@ export function CategoryBlock({
     dragProps: SortableHandleProps;
 }) {
     const items = category.items ?? [];
+    const colors = categoryColorClasses(category.color);
     const { list, itemProps } = useSortable(items, (payload) =>
         router.post(
             reorder(category.id).url,
@@ -39,13 +42,25 @@ export function CategoryBlock({
     return (
         <Card
             {...dragProps}
-            className="min-w-0 gap-0 py-0 transition-opacity data-[dragging]:opacity-50"
+            className={cn(
+                'min-w-0 gap-0 py-0 transition-opacity data-[dragging]:opacity-50',
+                colors && 'border-l-4',
+                colors?.border,
+            )}
         >
             <Collapsible defaultOpen>
                 <div className="flex items-center gap-2 p-3">
                     <GripVertical className="size-4 shrink-0 cursor-grab text-muted-foreground" />
                     <CollapsibleTrigger className="group flex min-w-0 flex-1 items-center gap-2 text-left">
                         <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=closed]:-rotate-90" />
+                        {colors && (
+                            <span
+                                className={cn(
+                                    'size-2.5 shrink-0 rounded-full',
+                                    colors.dot,
+                                )}
+                            />
+                        )}
                         <span className="truncate font-semibold">
                             {category.title}
                         </span>

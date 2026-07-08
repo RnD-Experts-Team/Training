@@ -19,7 +19,7 @@ export type ChecklistItem = {
     parent_id: number | null;
     title: string;
     content: string | null;
-    importance: Importance;
+    importance: Importance | null;
     order: number;
     children?: ChecklistItem[];
     media?: MediaItem[];
@@ -30,6 +30,7 @@ export type Category = {
     section_id: number;
     title: string;
     description: string | null;
+    color: string | null;
     order: number;
     items?: ChecklistItem[];
 };
@@ -91,7 +92,7 @@ export type EvaluationItem = {
     parent_id: number | null;
     title: string;
     content: string | null;
-    importance: Importance;
+    importance: Importance | null;
     order: number;
     media: MediaItem[];
     children: EvaluationItem[];
@@ -102,6 +103,7 @@ export type ProgressCategory = {
     id: number;
     title: string;
     description: string | null;
+    color: string | null;
     items: EvaluationItem[];
 };
 

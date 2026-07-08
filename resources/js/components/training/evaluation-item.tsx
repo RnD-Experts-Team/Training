@@ -1,8 +1,9 @@
 import { router } from '@inertiajs/react';
-import { ExternalLink } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { useState } from 'react';
 import { ImportanceBadge } from '@/components/training/importance-badge';
-import { StarRating } from '@/components/training/star-rating';
+import { MediaAttachments } from '@/components/training/media-attachments';
+import { RatingInput } from '@/components/training/rating-input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useCurrentStep } from '@/hooks/use-current-step';
@@ -33,13 +34,103 @@ export function EvaluationItem({
     currentStepId: number | null;
     isSub?: boolean;
 }) {
+    // Only leaf items are checkable; a parent reflects its children.
+    if (item.children.length > 0) {
+        return (
+            <EvaluationParent
+                item={item}
+                traineeId={traineeId}
+                currentStepId={currentStepId}
+                isSub={isSub}
+            />
+        );
+    }
+
+    return (
+        <EvaluationLeaf
+            item={item}
+            traineeId={traineeId}
+            currentStepId={currentStepId}
+            isSub={isSub}
+        />
+    );
+}
+
+function EvaluationParent({
+    item,
+    traineeId,
+    currentStepId,
+    isSub,
+}: {
+    item: EvaluationItemType;
+    traineeId: number;
+    currentStepId: number | null;
+    isSub: boolean;
+}) {
+    const completed = item.evaluation?.completed ?? false;
+
+    return (
+        <div
+            className={cn(
+                'rounded-lg border bg-muted/20 p-3',
+                isSub && 'border-dashed',
+            )}
+        >
+            <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold">{item.title}</span>
+                <ImportanceBadge importance={item.importance} />
+                {completed && (
+                    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                        Complete
+                    </span>
+                )}
+            </div>
+
+            {item.content && (
+                <p className="mt-2 rounded bg-muted/50 px-2 py-1.5 text-sm whitespace-pre-line text-muted-foreground">
+                    {item.content}
+                </p>
+            )}
+
+            {item.media.length > 0 && (
+                <div className="mt-2">
+                    <MediaAttachments media={item.media} />
+                </div>
+            )}
+
+            <div className="mt-3 space-y-2 border-t pt-3 pl-4">
+                {item.children.map((child) => (
+                    <EvaluationItem
+                        key={child.id}
+                        item={child}
+                        traineeId={traineeId}
+                        currentStepId={currentStepId}
+                        isSub
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function EvaluationLeaf({
+    item,
+    traineeId,
+    currentStepId,
+    isSub,
+}: {
+    item: EvaluationItemType;
+    traineeId: number;
+    currentStepId: number | null;
+    isSub: boolean;
+}) {
     const ev = item.evaluation;
 
     const [completed, setCompleted] = useState(ev?.completed ?? false);
     const [rating, setRating] = useState<number | null>(ev?.rating ?? null);
     const [notes, setNotes] = useState(ev?.notes ?? '');
 
-    // Re-sync local state when the server sends new data (e.g. cascade).
+    // Re-sync local state when the server sends new data.
     const signature = `${ev?.completed ? 1 : 0}|${ev?.rating ?? ''}|${ev?.notes ?? ''}`;
     const [knownSignature, setKnownSignature] = useState(signature);
 
@@ -53,31 +144,40 @@ export function EvaluationItem({
     const isCurrent = item.id === currentStepId;
     const stepRef = useCurrentStep(isCurrent);
 
-    function toggle(next: boolean) {
-        setCompleted(next);
+    const canComplete = rating !== null && notes.trim() !== '';
+
+    function save(
+        nextCompleted: boolean,
+        nextRating: number | null,
+        nextNotes: string,
+    ) {
+        // Invariant: an item can only be complete when it has a score and a note.
+        const valid = nextRating !== null && nextNotes.trim() !== '';
+        const finalCompleted = nextCompleted && valid;
+
+        setCompleted(finalCompleted);
+        setRating(nextRating);
+        setNotes(nextNotes);
+
         persist(traineeId, item.id, {
-            completed: next,
-            rating,
-            notes: notes || null,
+            completed: finalCompleted,
+            rating: nextRating,
+            notes: nextNotes.trim() === '' ? null : nextNotes,
         });
     }
 
+    function toggle(next: boolean) {
+        save(next, rating, notes);
+    }
+
     function rate(next: number | null) {
-        setRating(next);
-        persist(traineeId, item.id, {
-            completed,
-            rating: next,
-            notes: notes || null,
-        });
+        // Keep `completed` unless clearing the score would break the invariant.
+        save(completed, next, notes);
     }
 
     function commitNotes() {
         if ((ev?.notes ?? '') !== notes) {
-            persist(traineeId, item.id, {
-                completed,
-                rating,
-                notes: notes || null,
-            });
+            save(completed, rating, notes);
         }
     }
 
@@ -97,6 +197,7 @@ export function EvaluationItem({
             <div className="flex items-start gap-3">
                 <Checkbox
                     checked={completed}
+                    disabled={!completed && !canComplete}
                     onCheckedChange={(value) => toggle(value === true)}
                     className="mt-0.5"
                 />
@@ -126,36 +227,9 @@ export function EvaluationItem({
                         </p>
                     )}
 
-                    {item.media.length > 0 && (
-                        <ul className="flex flex-wrap gap-2">
-                            {item.media.map((m) => (
-                                <li key={m.id}>
-                                    <a
-                                        href={m.display_url ?? '#'}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-1 text-xs hover:underline"
-                                    >
-                                        {m.label || m.type}
-                                        <ExternalLink className="size-3 text-muted-foreground" />
-                                    </a>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
+                    <MediaAttachments media={item.media} />
 
-                    <div className="flex flex-wrap items-center gap-3 pt-1">
-                        <StarRating value={rating} onChange={rate} size="sm" />
-                        {rating !== null && (
-                            <button
-                                type="button"
-                                onClick={() => rate(null)}
-                                className="text-xs text-muted-foreground hover:text-foreground"
-                            >
-                                Clear
-                            </button>
-                        )}
-                    </div>
+                    <RatingInput value={rating} onChange={rate} />
 
                     <Textarea
                         value={notes}
@@ -163,24 +237,17 @@ export function EvaluationItem({
                         onBlur={commitNotes}
                         placeholder="Add a note…"
                         className="min-h-0 resize-none py-1.5 text-sm"
-                        rows={1}
+                        rows={2}
                     />
+
+                    {!completed && !canComplete && (
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Lock className="size-3" />
+                            Add a score and a note to mark this step complete.
+                        </p>
+                    )}
                 </div>
             </div>
-
-            {item.children.length > 0 && (
-                <div className="mt-3 space-y-2 border-t pt-3 pl-7">
-                    {item.children.map((child) => (
-                        <EvaluationItem
-                            key={child.id}
-                            item={child}
-                            traineeId={traineeId}
-                            currentStepId={currentStepId}
-                            isSub
-                        />
-                    ))}
-                </div>
-            )}
         </div>
     );
 }

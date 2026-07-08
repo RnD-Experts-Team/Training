@@ -1,10 +1,11 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, ChevronDown, Pencil, Trash2, Users } from 'lucide-react';
+import { useState } from 'react';
 import { AssignManagersDialog } from '@/components/training/assign-managers-dialog';
+import { CategorySection } from '@/components/training/category-section';
 import { CompletionBar } from '@/components/training/completion-bar';
 import { ConfirmDeleteDialog } from '@/components/training/confirm-delete-dialog';
-import { EvaluationItem } from '@/components/training/evaluation-item';
-import { StarRating } from '@/components/training/star-rating';
+import { RatingMeter } from '@/components/training/rating-meter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -17,6 +18,7 @@ import { destroy, edit, index } from '@/routes/trainees';
 import type { BreadcrumbItem } from '@/types';
 import type {
     EvaluationItem as EvaluationItemType,
+    ProgressSection,
     TraineeDetail,
     TraineeProgressData,
 } from '@/types/training';
@@ -45,6 +47,32 @@ function leafCount(items: EvaluationItemType[]): {
     );
 }
 
+function itemsContain(items: EvaluationItemType[], stepId: number): boolean {
+    return items.some(
+        (item) => item.id === stepId || itemsContain(item.children, stepId),
+    );
+}
+
+/** The category holding the current step, so it can open by default. */
+function categoryOfStep(
+    sections: ProgressSection[],
+    stepId: number | null,
+): number | null {
+    if (stepId === null) {
+        return null;
+    }
+
+    for (const section of sections) {
+        for (const category of section.categories) {
+            if (itemsContain(category.items, stepId)) {
+                return category.id;
+            }
+        }
+    }
+
+    return null;
+}
+
 export default function TraineeShow() {
     const { trainee, progress, canAssignManagers, availableManagers } =
         usePage<{
@@ -55,6 +83,11 @@ export default function TraineeShow() {
         }>().props;
 
     const { stats } = progress;
+
+    // Single-open category accordion; the current step's category opens first.
+    const [openCategoryId, setOpenCategoryId] = useState<number | null>(() =>
+        categoryOfStep(progress.sections, progress.currentStepId),
+    );
 
     return (
         <>
@@ -149,22 +182,12 @@ export default function TraineeShow() {
                         </div>
                         <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">
-                                Average rating
+                                Average score
                             </p>
-                            <div className="flex items-center gap-2">
-                                <StarRating
-                                    value={
-                                        stats.average_rating
-                                            ? Math.round(stats.average_rating)
-                                            : null
-                                    }
-                                    readOnly
-                                    size="sm"
-                                />
-                                <span className="text-sm font-medium">
-                                    {stats.average_rating ?? '—'}
-                                </span>
-                            </div>
+                            <RatingMeter
+                                value={stats.average_rating}
+                                size="md"
+                            />
                         </div>
                     </div>
                 </Card>
@@ -193,26 +216,24 @@ export default function TraineeShow() {
                                         {count.done}/{count.total}
                                     </Badge>
                                 </CollapsibleTrigger>
-                                <CollapsibleContent className="space-y-4 px-4 pb-4">
+                                <CollapsibleContent className="space-y-3 px-4 pb-4">
                                     {section.categories.map((category) => (
-                                        <div
+                                        <CategorySection
                                             key={category.id}
-                                            className="space-y-2"
-                                        >
-                                            <h3 className="text-sm font-medium text-muted-foreground">
-                                                {category.title}
-                                            </h3>
-                                            {category.items.map((item) => (
-                                                <EvaluationItem
-                                                    key={item.id}
-                                                    item={item}
-                                                    traineeId={trainee.id}
-                                                    currentStepId={
-                                                        progress.currentStepId
-                                                    }
-                                                />
-                                            ))}
-                                        </div>
+                                            category={category}
+                                            traineeId={trainee.id}
+                                            currentStepId={
+                                                progress.currentStepId
+                                            }
+                                            open={
+                                                openCategoryId === category.id
+                                            }
+                                            onOpenChange={(isOpen) =>
+                                                setOpenCategoryId(
+                                                    isOpen ? category.id : null,
+                                                )
+                                            }
+                                        />
                                     ))}
                                 </CollapsibleContent>
                             </Collapsible>

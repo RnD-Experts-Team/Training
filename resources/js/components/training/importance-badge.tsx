@@ -20,9 +20,13 @@ export function ImportanceBadge({
     importance,
     className,
 }: {
-    importance: Importance;
+    importance: Importance | null;
     className?: string;
 }) {
+    if (!importance) {
+        return null;
+    }
+
     return (
         <Badge variant="outline" className={cn(STYLES[importance], className)}>
             {LABELS[importance]}
