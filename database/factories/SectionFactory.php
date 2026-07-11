@@ -22,7 +22,7 @@ class SectionFactory extends Factory
             'order' => 0,
             'pie_content_review' => fake()->randomElement(['5 to 10 Mins', '10 to 15 Mins']),
             'screen_to_shoulder' => fake()->randomElement(['20 Mins', '30 Mins', '60 Mins']),
-            'hands_on_shifts' => fake()->randomElement(['1 Shift', '2 Shifts', '5 Shifts']),
+            'hands_on_shifts' => fake()->randomElement(['1 hour', '2 hours', '5 hours']),
         ];
     }
 }

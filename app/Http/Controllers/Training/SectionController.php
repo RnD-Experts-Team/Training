@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Training;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Training\ReorderRequest;
 use App\Http\Requests\Training\SectionRequest;
+use App\Models\Category;
 use App\Models\Section;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +41,31 @@ class SectionController extends Controller
 
         return Inertia::render('training/builder/section', [
             'section' => $section,
+            'moveTargets' => $this->moveTargets(),
         ]);
+    }
+
+    /**
+     * Lightweight section → category tree used by the builder's bulk-move pickers.
+     *
+     * @return array<int, array{id: int, title: string, categories: array<int, array{id: int, title: string}>}>
+     */
+    private function moveTargets(): array
+    {
+        return Section::ordered()
+            ->with(['categories' => fn ($query) => $query->orderBy('order')])
+            ->get()
+            ->map(fn (Section $section): array => [
+                'id' => $section->id,
+                'title' => $section->title,
+                'categories' => $section->categories
+                    ->map(fn (Category $category): array => [
+                        'id' => $category->id,
+                        'title' => $category->title,
+                    ])
+                    ->all(),
+            ])
+            ->all();
     }
 
     public function store(SectionRequest $request): RedirectResponse

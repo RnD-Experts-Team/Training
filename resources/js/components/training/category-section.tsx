@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import { EvaluationItem } from '@/components/training/evaluation-item';
+import { RatingMeter } from '@/components/training/rating-meter';
 import { Badge } from '@/components/ui/badge';
 import {
     Collapsible,
@@ -82,6 +83,13 @@ export function CategorySection({
                 <span className="flex-1 truncate font-medium">
                     {category.title}
                 </span>
+                {category.average_rating !== null && (
+                    <RatingMeter
+                        value={category.average_rating}
+                        size="sm"
+                        className="hidden shrink-0 sm:flex"
+                    />
+                )}
                 <Badge variant={allDone ? 'default' : 'secondary'}>
                     {count.done}/{count.total}
                 </Badge>

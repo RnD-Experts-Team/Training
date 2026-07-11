@@ -54,7 +54,7 @@
       "order": 1,
       "pie_content_review": "5 to 10 Mins",
       "screen_to_shoulder": "20 Mins",
-      "hands_on_shifts": "1 Shift",
+      "hands_on_shifts": "1 hour",
       "categories": [
         {
           "title": "Station Overview",
@@ -197,7 +197,7 @@
       "order": 2,
       "pie_content_review": "10 to 15 Mins",
       "screen_to_shoulder": "60 Mins",
-      "hands_on_shifts": "2 Shifts",
+      "hands_on_shifts": "2 hours",
       "categories": [
         {
           "title": "Station Overview",
@@ -379,7 +379,7 @@
       "order": 3,
       "pie_content_review": "10 to 15 Mins",
       "screen_to_shoulder": "90 Mins",
-      "hands_on_shifts": "5 Shifts",
+      "hands_on_shifts": "5 hours",
       "categories": [
         {
           "title": "Station Overview",
@@ -527,7 +527,7 @@
       "order": 4,
       "pie_content_review": "15 to 20 Mins",
       "screen_to_shoulder": "30 Mins",
-      "hands_on_shifts": "2 Shifts",
+      "hands_on_shifts": "2 hours",
       "categories": [
         {
           "title": "Station Overview",
@@ -817,7 +817,7 @@
       "order": 5,
       "pie_content_review": "10 to 15 Mins",
       "screen_to_shoulder": "20 Mins",
-      "hands_on_shifts": "3 Shifts",
+      "hands_on_shifts": "3 hours",
       "categories": [
         {
           "title": "Station Overview",
@@ -1105,7 +1105,7 @@
       "order": 6,
       "pie_content_review": "5 to 10 Mins",
       "screen_to_shoulder": "15 Mins",
-      "hands_on_shifts": "1 Shift",
+      "hands_on_shifts": "1 hour",
       "categories": [
         {
           "title": "Station Overview",
@@ -1225,7 +1225,7 @@
       "order": 7,
       "pie_content_review": "20 to 25 Mins",
       "screen_to_shoulder": "30 Mins",
-      "hands_on_shifts": "2 Shifts",
+      "hands_on_shifts": "2 hours",
       "categories": [
         {
           "title": "Station Overview",

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Training;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Training\BulkDeleteRequest;
 use App\Http\Requests\Training\CategoryRequest;
+use App\Http\Requests\Training\MoveCategoriesRequest;
 use App\Http\Requests\Training\ReorderRequest;
 use App\Models\Category;
 use App\Models\Section;
@@ -50,6 +52,32 @@ class CategoryController extends Controller
                 $section->categories()->whereKey($item['id'])->update(['order' => $item['order']]);
             }
         });
+
+        return back();
+    }
+
+    public function move(MoveCategoriesRequest $request): RedirectResponse
+    {
+        $sectionId = (int) $request->validated('section_id');
+
+        DB::transaction(function () use ($request, $sectionId): void {
+            $order = (int) Category::where('section_id', $sectionId)->max('order');
+
+            foreach (Category::whereIn('id', $request->ids())->get() as $category) {
+                $category->update(['section_id' => $sectionId, 'order' => ++$order]);
+            }
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Categories moved.')]);
+
+        return back();
+    }
+
+    public function bulkDestroy(BulkDeleteRequest $request): RedirectResponse
+    {
+        Category::whereIn('id', $request->ids())->delete();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Categories deleted.')]);
 
         return back();
     }

@@ -118,10 +118,14 @@ def parse_timeline(wb):
         section = TIMELINE_NAME_TO_SECTION.get(name)
         if not section:
             continue
+        # Hands-on time is expressed in hours; the sheet still says "Shift(s)".
+        hands_on = cell_text(vals.get("E")) or None
+        if hands_on:
+            hands_on = hands_on.replace("Shift", "hour")
         timing[section] = {
             "pie_content_review": cell_text(vals.get("C")) or None,
             "screen_to_shoulder": cell_text(vals.get("D")) or None,
-            "hands_on_shifts": cell_text(vals.get("E")) or None,
+            "hands_on_shifts": hands_on,
         }
     return timing
 

@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import { ChevronDown, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useBuilderSelection } from '@/components/training/builder-selection';
 import { CategoryFormDialog } from '@/components/training/category-form-dialog';
 import { ChecklistItemRow } from '@/components/training/checklist-item-row';
 import { ConfirmDeleteDialog } from '@/components/training/confirm-delete-dialog';
@@ -7,6 +8,7 @@ import { ItemFormDialog } from '@/components/training/item-form-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Collapsible,
     CollapsibleContent,
@@ -31,6 +33,7 @@ export function CategoryBlock({
 }) {
     const items = category.items ?? [];
     const colors = categoryColorClasses(category.color);
+    const selection = useBuilderSelection();
     const { list, itemProps } = useSortable(items, (payload) =>
         router.post(
             reorder(category.id).url,
@@ -48,8 +51,19 @@ export function CategoryBlock({
                 colors?.border,
             )}
         >
-            <Collapsible defaultOpen>
+            <Collapsible>
                 <div className="flex items-center gap-2 p-3">
+                    {selection && (
+                        <Checkbox
+                            checked={selection.isSelected('category', category.id)}
+                            onCheckedChange={() =>
+                                selection.toggle('category', category.id)
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Select ${category.title}`}
+                            className="shrink-0"
+                        />
+                    )}
                     <GripVertical className="size-4 shrink-0 cursor-grab text-muted-foreground" />
                     <CollapsibleTrigger className="group flex min-w-0 flex-1 items-center gap-2 text-left">
                         <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=closed]:-rotate-90" />

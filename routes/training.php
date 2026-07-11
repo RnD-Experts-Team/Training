@@ -25,12 +25,16 @@ Route::middleware(['auth', 'verified', 'super_admin'])
         Route::delete('sections/{section}', [SectionController::class, 'destroy'])->name('sections.destroy');
 
         // Categories
+        Route::post('categories/move', [CategoryController::class, 'move'])->name('categories.move');
+        Route::post('categories/bulk-destroy', [CategoryController::class, 'bulkDestroy'])->name('categories.bulk-destroy');
         Route::post('sections/{section}/categories', [CategoryController::class, 'store'])->name('categories.store');
         Route::post('sections/{section}/categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
         Route::put('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
         Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
         // Checklist items (and sub-items via parent_id)
+        Route::post('items/move', [ChecklistItemController::class, 'move'])->name('items.move');
+        Route::post('items/bulk-destroy', [ChecklistItemController::class, 'bulkDestroy'])->name('items.bulk-destroy');
         Route::post('categories/{category}/items', [ChecklistItemController::class, 'store'])->name('items.store');
         Route::post('categories/{category}/items/reorder', [ChecklistItemController::class, 'reorder'])->name('items.reorder');
         Route::put('items/{checklistItem}', [ChecklistItemController::class, 'update'])->name('items.update');

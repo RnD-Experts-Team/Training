@@ -1,10 +1,12 @@
 import { router } from '@inertiajs/react';
 import { GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useBuilderSelection } from '@/components/training/builder-selection';
 import { ConfirmDeleteDialog } from '@/components/training/confirm-delete-dialog';
 import { ImportanceBadge } from '@/components/training/importance-badge';
 import { ItemFormDialog } from '@/components/training/item-form-dialog';
 import { MediaManager } from '@/components/training/media-manager';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useSortable } from '@/hooks/use-sortable';
 import type { SortableHandleProps } from '@/hooks/use-sortable';
 import { cn } from '@/lib/utils';
@@ -23,6 +25,7 @@ export function ChecklistItemRow({
     isSub?: boolean;
 }) {
     const children = item.children ?? [];
+    const selection = useBuilderSelection();
     const { list: childList, itemProps: childProps } = useSortable(
         children,
         (payload) =>
@@ -42,6 +45,15 @@ export function ChecklistItemRow({
             )}
         >
             <div className="flex items-start gap-2 p-3">
+                {!isSub && selection && (
+                    <Checkbox
+                        checked={selection.isSelected('item', item.id)}
+                        onCheckedChange={() => selection.toggle('item', item.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`Select ${item.title}`}
+                        className="mt-0.5 shrink-0"
+                    />
+                )}
                 <GripVertical className="mt-0.5 size-4 shrink-0 cursor-grab text-muted-foreground" />
 
                 <div className="min-w-0 flex-1 space-y-2">

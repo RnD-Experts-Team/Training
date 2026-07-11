@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ClipboardList,
+    Clock,
     GripVertical,
     Layers,
     Pencil,
@@ -90,11 +91,11 @@ export default function BuilderIndex() {
                                             {section.checklist_items_count ?? 0}{' '}
                                             items
                                         </Badge>
-                                        {section.hands_on_shifts && (
-                                            <Badge variant="outline">
-                                                {section.hands_on_shifts}
-                                            </Badge>
-                                        )}
+                                        <Badge variant="outline">
+                                            <Clock className="size-3" />
+                                            Hands-on:{' '}
+                                            {section.hands_on_shifts || '—'}
+                                        </Badge>
                                     </div>
                                 </Link>
 

@@ -1,5 +1,12 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, ChevronDown, Pencil, Trash2, Users } from 'lucide-react';
+import {
+    ArrowLeft,
+    ChevronDown,
+    Clock,
+    Pencil,
+    Trash2,
+    Users,
+} from 'lucide-react';
 import { useState } from 'react';
 import { AssignManagersDialog } from '@/components/training/assign-managers-dialog';
 import { CategorySection } from '@/components/training/category-section';
@@ -73,6 +80,28 @@ function categoryOfStep(
     return null;
 }
 
+/** The section holding the current step, so it can open by default. */
+function sectionOfStep(
+    sections: ProgressSection[],
+    stepId: number | null,
+): number | null {
+    if (stepId === null) {
+        return sections[0]?.id ?? null;
+    }
+
+    for (const section of sections) {
+        if (
+            section.categories.some((category) =>
+                itemsContain(category.items, stepId),
+            )
+        ) {
+            return section.id;
+        }
+    }
+
+    return sections[0]?.id ?? null;
+}
+
 export default function TraineeShow() {
     const { trainee, progress, canAssignManagers, availableManagers } =
         usePage<{
@@ -84,7 +113,10 @@ export default function TraineeShow() {
 
     const { stats } = progress;
 
-    // Single-open category accordion; the current step's category opens first.
+    // Single-open accordions; the current step's section + category open first.
+    const [openSectionId, setOpenSectionId] = useState<number | null>(() =>
+        sectionOfStep(progress.sections, progress.currentStepId),
+    );
     const [openCategoryId, setOpenCategoryId] = useState<number | null>(() =>
         categoryOfStep(progress.sections, progress.currentStepId),
     );
@@ -199,12 +231,33 @@ export default function TraineeShow() {
 
                     return (
                         <Card key={section.id} className="gap-0 py-0">
-                            <Collapsible defaultOpen>
+                            <Collapsible
+                                open={openSectionId === section.id}
+                                onOpenChange={(isOpen) =>
+                                    setOpenSectionId(isOpen ? section.id : null)
+                                }
+                            >
                                 <CollapsibleTrigger className="group flex w-full items-center gap-3 p-4 text-left">
-                                    <ChevronDown className="size-4 text-muted-foreground transition-transform group-data-[state=closed]:-rotate-90" />
-                                    <span className="flex-1 font-semibold">
-                                        {section.title}
-                                    </span>
+                                    <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=closed]:-rotate-90" />
+                                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                        <span className="truncate font-semibold">
+                                            {section.title}
+                                        </span>
+                                        {section.hands_on_shifts && (
+                                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                <Clock className="size-3 shrink-0" />
+                                                Hands-on:{' '}
+                                                {section.hands_on_shifts}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {section.average_rating !== null && (
+                                        <RatingMeter
+                                            value={section.average_rating}
+                                            size="sm"
+                                            className="hidden shrink-0 sm:flex"
+                                        />
+                                    )}
                                     <Badge
                                         variant={
                                             count.done === count.total &&

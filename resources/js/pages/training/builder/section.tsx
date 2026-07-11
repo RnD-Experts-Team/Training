@@ -1,6 +1,13 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, Layers, Pencil, Plus } from 'lucide-react';
+import { useCallback, useState } from 'react';
 import Heading from '@/components/heading';
+import {
+    BuilderSelectionProvider
+    
+} from '@/components/training/builder-selection';
+import type {SelectionKind} from '@/components/training/builder-selection';
+import { BulkActionBar } from '@/components/training/bulk-action-bar';
 import { CategoryBlock } from '@/components/training/category-block';
 import { CategoryFormDialog } from '@/components/training/category-form-dialog';
 import { SectionFormDialog } from '@/components/training/section-form-dialog';
@@ -11,11 +18,49 @@ import { useSortable } from '@/hooks/use-sortable';
 import { reorder } from '@/routes/training/categories';
 import { index } from '@/routes/training/sections';
 import type { BreadcrumbItem } from '@/types';
-import type { Section } from '@/types/training';
+import type { MoveTarget, Section } from '@/types/training';
 
 export default function BuilderSection() {
-    const { section } = usePage<{ section: Section }>().props;
+    const { section, moveTargets } = usePage<{
+        section: Section;
+        moveTargets: MoveTarget[];
+    }>().props;
     const categories = section.categories ?? [];
+
+    const [selectedCategories, setSelectedCategories] = useState<Set<number>>(
+        () => new Set(),
+    );
+    const [selectedItems, setSelectedItems] = useState<Set<number>>(
+        () => new Set(),
+    );
+
+    const toggle = useCallback((kind: SelectionKind, id: number) => {
+        const setter =
+            kind === 'category' ? setSelectedCategories : setSelectedItems;
+
+        setter((prev) => {
+            const next = new Set(prev);
+
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+
+            return next;
+        });
+    }, []);
+
+    const isSelected = useCallback(
+        (kind: SelectionKind, id: number) =>
+            (kind === 'category' ? selectedCategories : selectedItems).has(id),
+        [selectedCategories, selectedItems],
+    );
+
+    const clearSelection = useCallback(() => {
+        setSelectedCategories(new Set());
+        setSelectedItems(new Set());
+    }, []);
 
     const { list, itemProps } = useSortable(categories, (payload) =>
         router.post(
@@ -90,18 +135,27 @@ export default function BuilderSection() {
                         </p>
                     </Card>
                 ) : (
-                    <div className="grid gap-3">
-                        {list.map((category) => (
-                            <CategoryBlock
-                                key={category.id}
-                                category={category}
-                                sectionId={section.id}
-                                dragProps={itemProps(category.id)}
-                            />
-                        ))}
-                    </div>
+                    <BuilderSelectionProvider value={{ isSelected, toggle }}>
+                        <div className="grid gap-3 pb-16">
+                            {list.map((category) => (
+                                <CategoryBlock
+                                    key={category.id}
+                                    category={category}
+                                    sectionId={section.id}
+                                    dragProps={itemProps(category.id)}
+                                />
+                            ))}
+                        </div>
+                    </BuilderSelectionProvider>
                 )}
             </div>
+
+            <BulkActionBar
+                selectedCategoryIds={[...selectedCategories]}
+                selectedItemIds={[...selectedItems]}
+                moveTargets={moveTargets}
+                onClear={clearSelection}
+            />
         </>
     );
 }

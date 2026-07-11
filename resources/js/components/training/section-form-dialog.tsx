@@ -137,7 +137,7 @@ export function SectionFormDialog({
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="hands">Hands-on</Label>
+                            <Label htmlFor="hands">Hands-on (hours)</Label>
                             <Input
                                 id="hands"
                                 value={form.data.hands_on_shifts}
@@ -147,7 +147,7 @@ export function SectionFormDialog({
                                         e.target.value,
                                     )
                                 }
-                                placeholder="2 Shifts"
+                                placeholder="2 hours"
                             />
                         </div>
                     </div>

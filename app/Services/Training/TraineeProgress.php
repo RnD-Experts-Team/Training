@@ -112,22 +112,53 @@ class TraineeProgress
             ];
         };
 
-        $sectionsData = $sections->map(fn (Section $section): array => [
-            'id' => $section->id,
-            'title' => $section->title,
-            'description' => $section->description,
-            'icon' => $section->icon,
-            'pie_content_review' => $section->pie_content_review,
-            'screen_to_shoulder' => $section->screen_to_shoulder,
-            'hands_on_shifts' => $section->hands_on_shifts,
-            'categories' => $section->categories->map(fn (Category $category): array => [
-                'id' => $category->id,
-                'title' => $category->title,
-                'description' => $category->description,
-                'color' => $category->color,
-                'items' => $category->items->map($mapItem)->all(),
-            ])->all(),
-        ])->all();
+        // Collect the non-null scores under a set of items (recursing sub-items).
+        $collectRatings = function ($items) use (&$collectRatings, $evaluations): array {
+            $ratings = [];
+            foreach ($items as $item) {
+                $evaluation = $evaluations->get($item->id);
+                if ($evaluation && $evaluation->rating !== null) {
+                    $ratings[] = (int) $evaluation->rating;
+                }
+                $ratings = array_merge($ratings, $collectRatings($item->children));
+            }
+
+            return $ratings;
+        };
+
+        $average = fn (array $ratings): ?float => $ratings === []
+            ? null
+            : round(array_sum($ratings) / count($ratings), 1);
+
+        $sectionsData = $sections->map(function (Section $section) use ($mapItem, $collectRatings, $average): array {
+            $sectionRatings = [];
+
+            $categories = $section->categories->map(function (Category $category) use ($mapItem, $collectRatings, $average, &$sectionRatings): array {
+                $categoryRatings = $collectRatings($category->items);
+                $sectionRatings = array_merge($sectionRatings, $categoryRatings);
+
+                return [
+                    'id' => $category->id,
+                    'title' => $category->title,
+                    'description' => $category->description,
+                    'color' => $category->color,
+                    'average_rating' => $average($categoryRatings),
+                    'items' => $category->items->map($mapItem)->all(),
+                ];
+            })->all();
+
+            return [
+                'id' => $section->id,
+                'title' => $section->title,
+                'description' => $section->description,
+                'icon' => $section->icon,
+                'pie_content_review' => $section->pie_content_review,
+                'screen_to_shoulder' => $section->screen_to_shoulder,
+                'hands_on_shifts' => $section->hands_on_shifts,
+                'average_rating' => $average($sectionRatings),
+                'categories' => $categories,
+            ];
+        })->all();
 
         return [
             'sections' => $sectionsData,

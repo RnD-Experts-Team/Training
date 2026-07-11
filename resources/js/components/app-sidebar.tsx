@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    BarChart3,
     // BookOpen,
     ClipboardList,
     // FolderGit2,
@@ -20,6 +21,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as reportsIndex } from '@/routes/reports';
 import { index as traineesIndex } from '@/routes/trainees';
 import { index as sectionsIndex } from '@/routes/training/sections';
 import type { Auth, NavItem } from '@/types';
@@ -39,6 +41,11 @@ export function AppSidebar() {
             title: 'Trainees',
             href: traineesIndex(),
             icon: Users,
+        },
+        {
+            title: 'Reports',
+            href: reportsIndex(),
+            icon: BarChart3,
         },
     ];
 

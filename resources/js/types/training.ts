@@ -49,6 +49,12 @@ export type Section = {
     checklist_items_count?: number;
 };
 
+export type MoveTarget = {
+    id: number;
+    title: string;
+    categories: { id: number; title: string }[];
+};
+
 export const IMPORTANCE_OPTIONS: { value: Importance; label: string }[] = [
     { value: 'highly_important', label: 'Highly Important' },
     { value: 'needs_review', label: 'Needs Review' },
@@ -104,6 +110,7 @@ export type ProgressCategory = {
     title: string;
     description: string | null;
     color: string | null;
+    average_rating: number | null;
     items: EvaluationItem[];
 };
 
@@ -115,6 +122,7 @@ export type ProgressSection = {
     pie_content_review: string | null;
     screen_to_shoulder: string | null;
     hands_on_shifts: string | null;
+    average_rating: number | null;
     categories: ProgressCategory[];
 };
 
