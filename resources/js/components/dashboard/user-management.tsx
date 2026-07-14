@@ -1,6 +1,8 @@
 import { router } from '@inertiajs/react';
 import { Trash2, UserPlus } from 'lucide-react';
 import { InviteUserDialog } from '@/components/dashboard/invite-user-dialog';
+import { StoreMultiSelect } from '@/components/dashboard/store-multi-select';
+import { Paginator } from '@/components/pagination';
 import { ConfirmDeleteDialog } from '@/components/training/confirm-delete-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +14,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { destroy, update } from '@/routes/admin/users';
+import type { Paginated } from '@/types/pagination';
 import type {
     AdminUserRow,
     RoleOption,
@@ -25,25 +28,30 @@ export function UserManagement({
     roleOptions,
     currentUserId,
 }: {
-    users: AdminUserRow[];
+    users: Paginated<AdminUserRow>;
     stores: StoreOption[];
     roleOptions: RoleOption[];
     currentUserId: number;
 }) {
-    function save(user: AdminUserRow, role: RoleValue, storeId: number | null) {
+    function save(user: AdminUserRow, role: RoleValue, storeIds: number[]) {
         router.patch(
             update(user.id).url,
-            { role, store_id: role === 'manager' ? storeId : null },
+            { role, store_ids: role === 'manager' ? storeIds : [] },
             { preserveScroll: true },
         );
     }
 
     function changeRole(user: AdminUserRow, role: RoleValue) {
-        const storeId =
+        const current = user.stores.map((store) => store.id);
+        const storeIds =
             role === 'manager'
-                ? (user.store?.id ?? stores[0]?.id ?? null)
-                : null;
-        save(user, role, storeId);
+                ? current.length > 0
+                    ? current
+                    : stores[0]
+                      ? [stores[0].id]
+                      : []
+                : [];
+        save(user, role, storeIds);
     }
 
     return (
@@ -53,8 +61,8 @@ export function UserManagement({
                     <div className="min-w-0">
                         <h2 className="font-semibold tracking-tight">Team</h2>
                         <p className="truncate text-sm text-muted-foreground">
-                            {users.length} member{users.length === 1 ? '' : 's'}{' '}
-                            · roles &amp; store access
+                            {users.total} member{users.total === 1 ? '' : 's'} ·
+                            roles &amp; store access
                         </p>
                     </div>
                     <InviteUserDialog
@@ -70,7 +78,7 @@ export function UserManagement({
                 </header>
 
                 <ul className="divide-y divide-border/60">
-                    {users.map((user) => {
+                    {users.data.map((user) => {
                         const isSelf = user.id === currentUserId;
 
                         return (
@@ -121,37 +129,16 @@ export function UserManagement({
                                     </Select>
 
                                     {user.role === 'manager' ? (
-                                        <Select
-                                            value={
-                                                user.store
-                                                    ? String(user.store.id)
-                                                    : ''
+                                        <StoreMultiSelect
+                                            value={user.stores.map(
+                                                (store) => store.id,
+                                            )}
+                                            options={stores}
+                                            onChange={(ids) =>
+                                                save(user, 'manager', ids)
                                             }
-                                            onValueChange={(value) =>
-                                                save(
-                                                    user,
-                                                    'manager',
-                                                    Number(value),
-                                                )
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                size="sm"
-                                                className="w-full"
-                                            >
-                                                <SelectValue placeholder="Assign store" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {stores.map((s) => (
-                                                    <SelectItem
-                                                        key={s.id}
-                                                        value={String(s.id)}
-                                                    >
-                                                        {s.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                            className="text-sm"
+                                        />
                                     ) : (
                                         <span className="flex items-center text-sm text-muted-foreground">
                                             All stores
@@ -189,6 +176,12 @@ export function UserManagement({
                         );
                     })}
                 </ul>
+
+                {users.last_page > 1 && (
+                    <div className="border-t border-border/60 p-4">
+                        <Paginator paginator={users} only="users" label="users" />
+                    </div>
+                )}
             </div>
         </section>
     );

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\Role;
 use App\Models\ChecklistItem;
 use App\Models\Section;
 use App\Models\Store;
@@ -26,41 +25,11 @@ class DashboardController extends Controller
 
     private function superAdminDashboard(): Response
     {
-        $users = User::with('store:id,name')
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(fn (User $user): array => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role->value,
-                'store' => $user->store?->only(['id', 'name']),
-                'joined' => $user->created_at?->toDateString(),
-            ]);
-
-        $stores = Store::withCount(['managers', 'trainees'])
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Store $store): array => [
-                'id' => $store->id,
-                'name' => $store->name,
-                'address' => $store->address,
-                'managers_count' => $store->managers_count,
-                'trainees_count' => $store->trainees_count,
-            ]);
-
         return Inertia::render('dashboard', [
             'isSuperAdmin' => true,
-            'currentUserId' => auth()->id(),
-            'users' => $users,
-            'stores' => $stores,
-            'roleOptions' => collect(Role::cases())->map(fn (Role $role): array => [
-                'value' => $role->value,
-                'label' => $role->label(),
-            ]),
             'stats' => [
-                'users' => $users->count(),
-                'stores' => $stores->count(),
+                'users' => User::count(),
+                'stores' => Store::count(),
                 'trainees' => Trainee::count(),
                 'sections' => Section::count(),
                 'items' => ChecklistItem::count(),

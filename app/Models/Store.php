@@ -6,6 +6,7 @@ use App\Enums\Role;
 use Database\Factories\StoreFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -22,13 +23,14 @@ class Store extends Model
     protected $fillable = ['name', 'address'];
 
     /**
-     * Managers that belong to this store.
+     * Managers that belong to this store (many-to-many via `manager_store`).
      *
-     * @return HasMany<User, $this>
+     * @return BelongsToMany<User, $this>
      */
-    public function managers(): HasMany
+    public function managers(): BelongsToMany
     {
-        return $this->hasMany(User::class)->where('role', Role::Manager);
+        return $this->belongsToMany(User::class, 'manager_store')
+            ->where('role', Role::Manager);
     }
 
     /**

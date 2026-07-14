@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\Training\TraineeProgress;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -54,9 +55,11 @@ class TraineeController extends Controller
     {
         $this->authorize('create', Trainee::class);
 
+        $stores = $this->assignableStores($request->user());
+
         return Inertia::render('training/trainees/create', [
-            'stores' => $request->user()->isSuperAdmin() ? Store::orderBy('name')->get(['id', 'name']) : [],
-            'canChooseStore' => $request->user()->isSuperAdmin(),
+            'stores' => $stores,
+            'canChooseStore' => $request->user()->isSuperAdmin() || $stores->count() > 1,
         ]);
     }
 
@@ -65,9 +68,19 @@ class TraineeController extends Controller
         $this->authorize('create', Trainee::class);
 
         $user = $request->user();
-        $storeId = $user->isSuperAdmin() ? $request->integer('store_id') : $user->store_id;
+        $isManager = $user->isManager();
+        $storeId = $request->integer('store_id') ?: null;
 
-        if (! $storeId) {
+        // A single-store manager doesn't need to choose — default to their store.
+        if (! $storeId && $isManager && $user->stores->count() === 1) {
+            $storeId = (int) $user->stores->first()->id;
+        }
+
+        $allowedStoreIds = $user->isSuperAdmin()
+            ? Store::pluck('id')
+            : $user->stores->pluck('id');
+
+        if (! $storeId || ! $allowedStoreIds->contains($storeId)) {
             throw ValidationException::withMessages(['store_id' => __('Please choose a store.')]);
         }
 
@@ -80,7 +93,7 @@ class TraineeController extends Controller
         ]);
 
         // Managers automatically own the trainees they create.
-        if ($user->isManager()) {
+        if ($isManager) {
             $trainee->managers()->attach($user->id);
         }
 
@@ -109,7 +122,7 @@ class TraineeController extends Controller
             'canAssignManagers' => $isSuperAdmin,
             'availableManagers' => $isSuperAdmin
                 ? User::where('role', Role::Manager)
-                    ->where('store_id', $trainee->store_id)
+                    ->whereHas('stores', fn ($query) => $query->whereKey($trainee->store_id))
                     ->orderBy('name')
                     ->get(['id', 'name'])
                 : [],
@@ -120,10 +133,12 @@ class TraineeController extends Controller
     {
         $this->authorize('update', $trainee);
 
+        $stores = $this->assignableStores($request->user());
+
         return Inertia::render('training/trainees/edit', [
             'trainee' => $trainee->only(['id', 'name', 'position', 'hired_at', 'store_id']),
-            'stores' => $request->user()->isSuperAdmin() ? Store::orderBy('name')->get(['id', 'name']) : [],
-            'canChooseStore' => $request->user()->isSuperAdmin(),
+            'stores' => $stores,
+            'canChooseStore' => $request->user()->isSuperAdmin() || $stores->count() > 1,
         ]);
     }
 
@@ -137,8 +152,15 @@ class TraineeController extends Controller
             'hired_at' => $request->validated('hired_at'),
         ];
 
-        if ($request->user()->isSuperAdmin() && $request->integer('store_id')) {
-            $attributes['store_id'] = $request->integer('store_id');
+        $user = $request->user();
+        $storeId = $request->integer('store_id');
+
+        if ($storeId) {
+            $allowedStoreIds = $user->isSuperAdmin() ? Store::pluck('id') : $user->stores->pluck('id');
+
+            if ($allowedStoreIds->contains($storeId)) {
+                $attributes['store_id'] = $storeId;
+            }
         }
 
         $trainee->update($attributes);
@@ -157,5 +179,21 @@ class TraineeController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Trainee removed.')]);
 
         return to_route('trainees.index');
+    }
+
+    /**
+     * Stores a trainee may be assigned to: all stores for super admins, the
+     * manager's own stores otherwise.
+     *
+     * @return Collection<int, array{id: int, name: string}>
+     */
+    private function assignableStores(User $user): Collection
+    {
+        $query = $user->isSuperAdmin() ? Store::query() : $user->stores();
+
+        return $query->orderBy('name')
+            ->get(['stores.id', 'stores.name'])
+            ->map(fn (Store $store): array => ['id' => $store->id, 'name' => $store->name])
+            ->values();
     }
 }

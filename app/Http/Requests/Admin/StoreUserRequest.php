@@ -19,7 +19,8 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'min:8'],
             'role' => ['required', new Enum(Role::class)],
-            'store_id' => ['nullable', 'integer', 'exists:stores,id', Rule::requiredIf($this->input('role') === Role::Manager->value)],
+            'store_ids' => ['array', Rule::requiredIf($this->input('role') === Role::Manager->value)],
+            'store_ids.*' => ['integer', 'exists:stores,id'],
         ];
     }
 }

@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     BarChart3,
     // BookOpen,
+    Building2,
     ClipboardList,
     // FolderGit2,
     LayoutGrid,
@@ -21,6 +22,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { management } from '@/routes/admin';
 import { index as reportsIndex } from '@/routes/reports';
 import { index as traineesIndex } from '@/routes/trainees';
 import { index as sectionsIndex } from '@/routes/training/sections';
@@ -50,11 +52,18 @@ export function AppSidebar() {
     ];
 
     if (auth.user.role === 'super_admin') {
-        mainNavItems.push({
-            title: 'Content Builder',
-            href: sectionsIndex(),
-            icon: ClipboardList,
-        });
+        mainNavItems.push(
+            {
+                title: 'Content Builder',
+                href: sectionsIndex(),
+                icon: ClipboardList,
+            },
+            {
+                title: 'Management',
+                href: management(),
+                icon: Building2,
+            },
+        );
     }
 
     return (

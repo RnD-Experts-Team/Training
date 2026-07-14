@@ -57,8 +57,10 @@ class StoreManagementTest extends TestCase
         $store = Store::factory()->create();
         Trainee::factory()->forStore($store)->create();
 
+        // The delete is refused gracefully (an error toast, not a crash) and the
+        // store is left intact.
         $this->actingAs($admin)->delete(route('admin.stores.destroy', $store))
-            ->assertSessionHasErrors('store');
+            ->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('stores', ['id' => $store->id]);
     }

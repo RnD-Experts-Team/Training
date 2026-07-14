@@ -1,38 +1,29 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
+    Building2,
     Layers,
     ListChecks,
     Percent,
     Store as StoreIcon,
-    UserPlus,
     Users,
 } from 'lucide-react';
 import { HeroTile } from '@/components/dashboard/hero-tile';
-import { InviteUserDialog } from '@/components/dashboard/invite-user-dialog';
 import { StatCard } from '@/components/dashboard/stat-card';
-import { StoreManagement } from '@/components/dashboard/store-management';
-import { UserManagement } from '@/components/dashboard/user-management';
 import { CompletionBar } from '@/components/training/completion-bar';
 import { RatingMeter } from '@/components/training/rating-meter';
 import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
+import { management } from '@/routes/admin';
 import { index as traineesIndex, show as traineeShow } from '@/routes/trainees';
 import type { Auth, BreadcrumbItem } from '@/types';
 import type {
-    AdminStoreRow,
-    AdminUserRow,
     DashboardStats,
     ManagerStats,
-    RoleOption,
     TraineeSummary,
 } from '@/types/training';
 
 type DashboardProps = {
     isSuperAdmin: boolean;
-    currentUserId?: number;
-    users?: AdminUserRow[];
-    stores?: AdminStoreRow[];
-    roleOptions?: RoleOption[];
     stats?: DashboardStats;
     managerStats?: ManagerStats;
     trainees?: TraineeSummary[];
@@ -62,10 +53,6 @@ export default function Dashboard() {
 
 function SuperAdminView({
     stats,
-    users = [],
-    stores = [],
-    roleOptions = [],
-    currentUserId = 0,
     firstName,
 }: DashboardProps & { firstName: string }) {
     return (
@@ -79,15 +66,12 @@ function SuperAdminView({
                     metricValue={stats?.trainees ?? 0}
                     metricLabel="trainees in training"
                     action={
-                        <InviteUserDialog
-                            roleOptions={roleOptions}
-                            stores={stores}
-                            trigger={
-                                <Button className={GLASS_BUTTON}>
-                                    <UserPlus className="size-4" /> Invite
-                                </Button>
-                            }
-                        />
+                        <Button asChild className={GLASS_BUTTON}>
+                            <Link href={management().url}>
+                                <Building2 className="size-4" /> Manage team &amp;
+                                stores
+                            </Link>
+                        </Button>
                     }
                 />
                 <StatCard
@@ -106,20 +90,6 @@ function SuperAdminView({
                     value={stats?.items ?? 0}
                     icon={ListChecks}
                 />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-                <div className="xl:col-span-2">
-                    <UserManagement
-                        users={users}
-                        stores={stores}
-                        roleOptions={roleOptions}
-                        currentUserId={currentUserId}
-                    />
-                </div>
-                <div className="xl:col-span-1">
-                    <StoreManagement stores={stores} />
-                </div>
             </div>
         </div>
     );

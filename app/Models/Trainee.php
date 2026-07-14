@@ -77,8 +77,10 @@ class Trainee extends Model
     }
 
     /**
-     * Limit the query to trainees the given user is allowed to see.
-     * Super admins see everyone; managers only see assigned trainees.
+     * Limit the query to trainees the given user is allowed to see. Super admins
+     * see everyone; a manager sees every trainee in any of their assigned stores,
+     * plus any trainee explicitly assigned to them (the pivot is an additive
+     * grant for cross-store cases). A manager with no stores sees only pivot links.
      *
      * @param  Builder<Trainee>  $query
      * @return Builder<Trainee>
@@ -89,7 +91,15 @@ class Trainee extends Model
             return $query;
         }
 
-        return $query->whereHas('managers', fn (Builder $q) => $q->whereKey($user->id));
+        $storeIds = $user->stores->pluck('id');
+
+        return $query->where(function (Builder $q) use ($user, $storeIds): void {
+            $q->whereHas('managers', fn (Builder $inner) => $inner->whereKey($user->id));
+
+            if ($storeIds->isNotEmpty()) {
+                $q->orWhereIn('store_id', $storeIds);
+            }
+        });
     }
 
     /**

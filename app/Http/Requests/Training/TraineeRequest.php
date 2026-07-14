@@ -15,7 +15,8 @@ class TraineeRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'position' => ['nullable', 'string', 'max:255'],
             'hired_at' => ['nullable', 'date'],
-            // Only honored for super admins; managers always use their own store.
+            // The controller checks the chosen store is one the user may use
+            // (any store for super admins, the manager's own stores otherwise).
             'store_id' => ['nullable', 'integer', 'exists:stores,id'],
         ];
     }

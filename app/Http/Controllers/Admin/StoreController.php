@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreRequest;
 use App\Models\Store;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class StoreController extends Controller
@@ -33,9 +32,12 @@ class StoreController extends Controller
     {
         // Deleting a store cascade-deletes its trainees, so require it be empty first.
         if ($store->trainees()->exists()) {
-            throw ValidationException::withMessages([
-                'store' => __('Move or remove this store\'s trainees before deleting it.'),
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => __('Move or remove this store\'s trainees before deleting it.'),
             ]);
+
+            return back();
         }
 
         $store->delete();

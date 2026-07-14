@@ -16,7 +16,8 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'role' => ['required', new Enum(Role::class)],
-            'store_id' => ['nullable', 'integer', 'exists:stores,id', Rule::requiredIf($this->input('role') === Role::Manager->value)],
+            'store_ids' => ['array', Rule::requiredIf($this->input('role') === Role::Manager->value)],
+            'store_ids.*' => ['integer', 'exists:stores,id'],
         ];
     }
 }

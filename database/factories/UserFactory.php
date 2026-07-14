@@ -30,7 +30,6 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'role' => Role::Manager,
-            'store_id' => null,
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
@@ -47,19 +46,20 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => Role::SuperAdmin,
-            'store_id' => null,
         ]);
     }
 
     /**
-     * Indicate that the user is a manager, optionally for a specific store.
+     * Indicate that the user is a manager, assigned to a store (a fresh one is
+     * created when none is given). Attaches via the `manager_store` pivot.
      */
     public function manager(?Store $store = null): static
     {
         return $this->state(fn (array $attributes) => [
             'role' => Role::Manager,
-            'store_id' => $store ? $store->id : Store::factory(),
-        ]);
+        ])->afterCreating(function (User $user) use ($store): void {
+            $user->stores()->attach($store ? $store->id : Store::factory()->create()->id);
+        });
     }
 
     /**

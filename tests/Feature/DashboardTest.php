@@ -43,9 +43,10 @@ class DashboardTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('dashboard')
                 ->where('isSuperAdmin', true)
-                ->has('users')
-                ->has('stores')
                 ->has('stats')
+                // User + store management moved to the dedicated Management page.
+                ->missing('users')
+                ->missing('stores')
             );
     }
 }

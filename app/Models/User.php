@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -23,7 +22,6 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string $name
  * @property string $email
  * @property Role $role
- * @property int|null $store_id
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $two_factor_secret
@@ -32,7 +30,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property-read Store|null $store
+ * @property-read Collection<int, Store> $stores
  * @property-read Collection<int, Trainee> $assignedTrainees
  */
 #[Fillable(['name', 'email', 'password'])]
@@ -58,13 +56,13 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
-     * The store this user (manager) belongs to. Null for super admins.
+     * The stores this user (manager) belongs to. Empty for super admins.
      *
-     * @return BelongsTo<Store, $this>
+     * @return BelongsToMany<Store, $this>
      */
-    public function store(): BelongsTo
+    public function stores(): BelongsToMany
     {
-        return $this->belongsTo(Store::class);
+        return $this->belongsToMany(Store::class, 'manager_store');
     }
 
     /**

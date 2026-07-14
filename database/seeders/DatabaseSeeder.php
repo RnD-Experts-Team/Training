@@ -25,27 +25,35 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Two stores, each with a manager and a few assigned trainees.
-        Store::factory()
+        $stores = Store::factory()
             ->count(2)
             ->sequence(
                 ['name' => 'Downtown Pizza'],
                 ['name' => 'Lakeside Pizza'],
             )
-            ->create()
-            ->each(function (Store $store, int $index): void {
-                $manager = User::factory()->create([
-                    'name' => "Manager {$store->name}",
-                    'email' => 'manager'.($index + 1).'@example.com',
-                    'role' => Role::Manager,
-                    'store_id' => $store->id,
-                ]);
+            ->create();
 
-                Trainee::factory()
-                    ->count(3)
-                    ->forStore($store)
-                    ->create(['created_by' => $manager->id])
-                    ->each(fn (Trainee $trainee) => $trainee->managers()->attach($manager->id));
-            });
+        $stores->each(function (Store $store, int $index): void {
+            $manager = User::factory()->create([
+                'name' => "Manager {$store->name}",
+                'email' => 'manager'.($index + 1).'@example.com',
+                'role' => Role::Manager,
+            ]);
+            $manager->stores()->attach($store->id);
+
+            Trainee::factory()
+                ->count(3)
+                ->forStore($store)
+                ->create(['created_by' => $manager->id])
+                ->each(fn (Trainee $trainee) => $trainee->managers()->attach($manager->id));
+        });
+
+        // A regional manager assigned to BOTH stores (exercises multi-store access).
+        User::factory()->create([
+            'name' => 'Regional Manager',
+            'email' => 'regional@example.com',
+            'role' => Role::Manager,
+        ])->stores()->attach($stores->pluck('id'));
 
         $this->call(TrainingContentSeeder::class);
     }

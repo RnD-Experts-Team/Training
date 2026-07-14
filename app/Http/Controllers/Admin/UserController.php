@@ -18,14 +18,15 @@ class UserController extends Controller
     {
         $role = Role::from($request->validated('role'));
 
-        User::forceCreate([
+        $user = User::forceCreate([
             'name' => $request->validated('name'),
             'email' => $request->validated('email'),
             'password' => Hash::make($request->validated('password')),
             'role' => $role,
-            'store_id' => $role === Role::Manager ? $request->validated('store_id') : null,
             'email_verified_at' => now(),
         ]);
+
+        $user->stores()->sync($role === Role::Manager ? $request->validated('store_ids', []) : []);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('User created.')]);
 
@@ -41,8 +42,9 @@ class UserController extends Controller
 
         $role = Role::from($request->validated('role'));
         $user->role = $role;
-        $user->store_id = $role === Role::Manager ? $request->validated('store_id') : null;
         $user->save();
+
+        $user->stores()->sync($role === Role::Manager ? $request->validated('store_ids', []) : []);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('User updated.')]);
 

@@ -57,9 +57,20 @@ class TraineePolicy
         return false;
     }
 
+    /**
+     * A manager may act on a trainee in any of their stores, or one explicitly
+     * assigned to them via the pivot (additive grant for cross-store cases).
+     */
     private function isAssigned(User $user, Trainee $trainee): bool
     {
-        return $user->isManager()
-            && $user->assignedTrainees()->whereKey($trainee->getKey())->exists();
+        if (! $user->isManager()) {
+            return false;
+        }
+
+        if ($user->stores->pluck('id')->contains($trainee->store_id)) {
+            return true;
+        }
+
+        return $user->assignedTrainees()->whereKey($trainee->getKey())->exists();
     }
 }

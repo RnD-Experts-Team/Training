@@ -6,6 +6,7 @@ use App\Models\Store;
 use App\Models\Trainee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class TraineeManagementTest extends TestCase
@@ -15,6 +16,28 @@ class TraineeManagementTest extends TestCase
     public function test_guests_are_redirected(): void
     {
         $this->get(route('trainees.index'))->assertRedirect(route('login'));
+    }
+
+    public function test_create_and_edit_pages_render(): void
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $trainee = Trainee::factory()->create();
+
+        $this->actingAs($admin)
+            ->get(route('trainees.create'))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('training/trainees/create')
+                ->has('stores')
+            );
+
+        $this->actingAs($admin)
+            ->get(route('trainees.edit', $trainee))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('training/trainees/edit')
+                ->where('trainee.id', $trainee->id)
+            );
     }
 
     public function test_manager_creating_a_trainee_auto_assigns_and_sets_store(): void
@@ -39,6 +62,34 @@ class TraineeManagementTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('trainees.store'), ['name' => 'No Store'])
+            ->assertSessionHasErrors('store_id');
+    }
+
+    public function test_multi_store_manager_picks_a_store_for_a_new_trainee(): void
+    {
+        [$storeA, $storeB] = Store::factory()->count(2)->create();
+        $manager = User::factory()->manager($storeA)->create();
+        $manager->stores()->attach($storeB->id);
+
+        // Two stores → must choose.
+        $this->actingAs($manager->fresh())
+            ->post(route('trainees.store'), ['name' => 'Ambiguous'])
+            ->assertSessionHasErrors('store_id');
+
+        // Picking one of their stores works and lands the trainee there.
+        $this->actingAs($manager->fresh())
+            ->post(route('trainees.store'), ['name' => 'Picked', 'store_id' => $storeB->id])
+            ->assertSessionHasNoErrors();
+        $this->assertSame($storeB->id, Trainee::firstWhere('name', 'Picked')->store_id);
+    }
+
+    public function test_manager_cannot_create_a_trainee_in_a_foreign_store(): void
+    {
+        $manager = User::factory()->manager()->create();
+        $foreign = Store::factory()->create();
+
+        $this->actingAs($manager)
+            ->post(route('trainees.store'), ['name' => 'Sneaky', 'store_id' => $foreign->id])
             ->assertSessionHasErrors('store_id');
     }
 

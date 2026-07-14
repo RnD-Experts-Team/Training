@@ -223,8 +223,11 @@ class ReportAnalytics
         $managers = User::query()
             ->where('role', Role::Manager)
             ->when(! $scope->isSuperAdmin(), fn ($query) => $query->whereKey($scope->user->id))
-            ->when($scope->isSuperAdmin() && $scope->storeId, fn ($query) => $query->where('store_id', $scope->storeId))
-            ->with('store:id,name')
+            ->when(
+                $scope->isSuperAdmin() && $scope->storeId,
+                fn ($query) => $query->whereHas('stores', fn ($inner) => $inner->whereKey($scope->storeId)),
+            )
+            ->with('stores:id,name')
             ->orderBy('name')
             ->get();
 
@@ -249,7 +252,7 @@ class ReportAnalytics
             return [
                 'id' => $manager->id,
                 'name' => $manager->name,
-                'store' => $manager->store?->name,
+                'store' => $manager->stores->pluck('name')->implode(', ') ?: null,
                 'assigned_trainees' => (int) ($assigned[$manager->id] ?? 0),
                 'evaluations_recorded' => $stats !== null ? (int) $stats->total : 0,
                 'average_score' => $stats !== null && $stats->average !== null

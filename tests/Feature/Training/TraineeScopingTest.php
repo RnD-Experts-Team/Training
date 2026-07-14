@@ -12,19 +12,58 @@ class TraineeScopingTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_manager_only_sees_assigned_trainees(): void
+    public function test_manager_sees_all_trainees_in_their_store(): void
     {
         $store = Store::factory()->create();
+        $otherStore = Store::factory()->create();
         $manager = User::factory()->manager($store)->create();
 
-        $assigned = Trainee::factory()->forStore($store)->create();
-        $assigned->managers()->attach($manager);
-        Trainee::factory()->forStore($store)->create(); // unassigned
+        // Both belong to the manager's store — even the one they never touched.
+        $mine = Trainee::factory()->forStore($store)->create();
+        $alsoMine = Trainee::factory()->forStore($store)->create();
+        $elsewhere = Trainee::factory()->forStore($otherStore)->create();
 
         $visible = Trainee::visibleTo($manager)->get();
 
-        $this->assertCount(1, $visible);
-        $this->assertTrue($visible->contains($assigned));
+        $this->assertCount(2, $visible);
+        $this->assertTrue($visible->contains($mine));
+        $this->assertTrue($visible->contains($alsoMine));
+        $this->assertFalse($visible->contains($elsewhere));
+    }
+
+    public function test_manager_in_multiple_stores_sees_all_their_stores_trainees(): void
+    {
+        $storeA = Store::factory()->create();
+        $storeB = Store::factory()->create();
+        $otherStore = Store::factory()->create();
+
+        $manager = User::factory()->manager($storeA)->create();
+        $manager->stores()->attach($storeB->id);
+
+        $inA = Trainee::factory()->forStore($storeA)->create();
+        $inB = Trainee::factory()->forStore($storeB)->create();
+        $elsewhere = Trainee::factory()->forStore($otherStore)->create();
+
+        $visible = Trainee::visibleTo($manager->fresh())->get();
+
+        $this->assertCount(2, $visible);
+        $this->assertTrue($visible->contains($inA));
+        $this->assertTrue($visible->contains($inB));
+        $this->assertFalse($visible->contains($elsewhere));
+    }
+
+    public function test_manager_sees_explicitly_assigned_cross_store_trainee(): void
+    {
+        $store = Store::factory()->create();
+        $otherStore = Store::factory()->create();
+        $manager = User::factory()->manager($store)->create();
+
+        // A trainee in another store, granted via the pivot.
+        $crossStore = Trainee::factory()->forStore($otherStore)->create();
+        $crossStore->managers()->attach($manager);
+
+        $this->assertTrue(Trainee::visibleTo($manager)->get()->contains($crossStore));
+        $this->assertTrue($manager->can('view', $crossStore));
     }
 
     public function test_trainee_assigned_to_two_managers_is_visible_to_both(): void
@@ -62,20 +101,21 @@ class TraineeScopingTest extends TestCase
         $this->assertCount(6, Trainee::visibleTo($superAdmin)->inStore(null)->get());
     }
 
-    public function test_policy_blocks_manager_from_unassigned_trainee(): void
+    public function test_policy_allows_same_store_and_blocks_other_store(): void
     {
         $store = Store::factory()->create();
+        $otherStore = Store::factory()->create();
         $manager = User::factory()->manager($store)->create();
-        $unassigned = Trainee::factory()->forStore($store)->create();
 
-        $this->assertFalse($manager->can('view', $unassigned));
-        $this->assertFalse($manager->can('evaluate', $unassigned));
+        // Same store — allowed without any explicit assignment.
+        $sameStore = Trainee::factory()->forStore($store)->create();
+        $this->assertTrue($manager->can('view', $sameStore));
+        $this->assertTrue($manager->can('evaluate', $sameStore));
 
-        $assigned = Trainee::factory()->forStore($store)->create();
-        $assigned->managers()->attach($manager);
-
-        $this->assertTrue($manager->can('view', $assigned));
-        $this->assertTrue($manager->can('evaluate', $assigned));
+        // Other store — blocked.
+        $otherStoreTrainee = Trainee::factory()->forStore($otherStore)->create();
+        $this->assertFalse($manager->can('view', $otherStoreTrainee));
+        $this->assertFalse($manager->can('evaluate', $otherStoreTrainee));
     }
 
     public function test_super_admin_can_act_on_any_trainee_via_gate_before(): void

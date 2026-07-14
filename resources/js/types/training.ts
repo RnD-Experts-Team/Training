@@ -141,7 +141,7 @@ export type AdminUserRow = {
     name: string;
     email: string;
     role: RoleValue;
-    store: StoreOption | null;
+    stores: StoreOption[];
     joined: string | null;
 };
 

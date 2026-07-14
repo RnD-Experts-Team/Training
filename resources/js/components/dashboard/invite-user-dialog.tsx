@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
+import { StoreMultiSelect } from '@/components/dashboard/store-multi-select';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,7 +40,7 @@ export function InviteUserDialog({
         email: '',
         password: '',
         role: 'manager' as RoleValue,
-        store_id: '',
+        store_ids: [] as number[],
     });
 
     function submit(event: FormEvent) {
@@ -114,7 +115,7 @@ export function InviteUserDialog({
                                     form.setData('role', value as RoleValue);
 
                                     if (value !== 'manager') {
-                                        form.setData('store_id', '');
+                                        form.setData('store_ids', []);
                                     }
                                 }}
                             >
@@ -139,31 +140,16 @@ export function InviteUserDialog({
                         </div>
                         {form.data.role === 'manager' && (
                             <div className="grid gap-2">
-                                <Label htmlFor="user-store">Store</Label>
-                                <Select
-                                    value={form.data.store_id}
-                                    onValueChange={(value) =>
-                                        form.setData('store_id', value)
+                                <Label htmlFor="user-store">Stores</Label>
+                                <StoreMultiSelect
+                                    id="user-store"
+                                    value={form.data.store_ids}
+                                    options={stores}
+                                    onChange={(ids) =>
+                                        form.setData('store_ids', ids)
                                     }
-                                >
-                                    <SelectTrigger
-                                        id="user-store"
-                                        className="w-full"
-                                    >
-                                        <SelectValue placeholder="Select" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {stores.map((s) => (
-                                            <SelectItem
-                                                key={s.id}
-                                                value={String(s.id)}
-                                            >
-                                                {s.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={form.errors.store_id} />
+                                />
+                                <InputError message={form.errors.store_ids} />
                             </div>
                         )}
                     </div>

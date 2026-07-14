@@ -1,13 +1,15 @@
 import { router } from '@inertiajs/react';
 import { Pencil, Plus, Store, Trash2 } from 'lucide-react';
 import { StoreFormDialog } from '@/components/dashboard/store-form-dialog';
+import { Paginator } from '@/components/pagination';
 import { ConfirmDeleteDialog } from '@/components/training/confirm-delete-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { destroy } from '@/routes/admin/stores';
+import type { Paginated } from '@/types/pagination';
 import type { AdminStoreRow } from '@/types/training';
 
-export function StoreManagement({ stores }: { stores: AdminStoreRow[] }) {
+export function StoreManagement({ stores }: { stores: Paginated<AdminStoreRow> }) {
     return (
         <section className="surface-tray min-w-0">
             <div className="surface-core overflow-hidden">
@@ -15,8 +17,8 @@ export function StoreManagement({ stores }: { stores: AdminStoreRow[] }) {
                     <div className="min-w-0">
                         <h2 className="font-semibold tracking-tight">Stores</h2>
                         <p className="truncate text-sm text-muted-foreground">
-                            {stores.length} location
-                            {stores.length === 1 ? '' : 's'}
+                            {stores.total} location
+                            {stores.total === 1 ? '' : 's'}
                         </p>
                     </div>
                     <StoreFormDialog
@@ -32,7 +34,7 @@ export function StoreManagement({ stores }: { stores: AdminStoreRow[] }) {
                 </header>
 
                 <ul className="divide-y divide-border/60">
-                    {stores.map((store) => (
+                    {stores.data.map((store) => (
                         <li
                             key={store.id}
                             className="flex items-start gap-3 p-4"
@@ -101,6 +103,16 @@ export function StoreManagement({ stores }: { stores: AdminStoreRow[] }) {
                         </li>
                     ))}
                 </ul>
+
+                {stores.last_page > 1 && (
+                    <div className="border-t border-border/60 p-4">
+                        <Paginator
+                            paginator={stores}
+                            only="stores"
+                            label="stores"
+                        />
+                    </div>
+                )}
             </div>
         </section>
     );
