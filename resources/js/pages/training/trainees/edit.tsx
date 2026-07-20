@@ -120,9 +120,12 @@ export default function TraineeEdit() {
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <InputError message={form.errors.store_id} />
                             </div>
                         )}
+
+                        {/* Outside the picker: the store error can fire while
+                            the picker itself is hidden. */}
+                        <InputError message={form.errors.store_id} />
 
                         <Button type="submit" disabled={form.processing}>
                             Save changes

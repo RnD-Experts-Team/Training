@@ -1,4 +1,4 @@
-import { router, useForm } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import {
     ExternalLink,
     FileText,
@@ -10,6 +10,7 @@ import {
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import InputError from '@/components/input-error';
+import { VideoPlayer } from '@/components/training/video-player';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,7 +21,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { destroy, store } from '@/routes/training/media';
-import type { ChecklistItem, MediaType } from '@/types/training';
+import type { ChecklistItem, MediaLimits, MediaType } from '@/types/training';
 
 const TYPE_ICON = {
     link: LinkIcon,
@@ -29,8 +30,16 @@ const TYPE_ICON = {
     file: FileText,
 } as const;
 
+function formatSize(bytes: number): string {
+    return bytes >= 1024 * 1024
+        ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+        : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 export function MediaManager({ item }: { item: ChecklistItem }) {
+    const { mediaLimits } = usePage<{ mediaLimits: MediaLimits }>().props;
     const [adding, setAdding] = useState(false);
+    const [fileError, setFileError] = useState<string | null>(null);
     const form = useForm<{
         type: MediaType;
         url: string;
@@ -43,13 +52,40 @@ export function MediaManager({ item }: { item: ChecklistItem }) {
         file: null,
     });
 
+    const limit = mediaLimits?.[form.data.type];
+
+    /**
+     * Reject an oversized file up front — sending it would tie up (or kill) the
+     * server and the user would just get an opaque failure.
+     */
+    function pickFile(file: File | null) {
+        form.setData('file', file);
+        form.clearErrors('file');
+
+        if (file && limit && file.size > limit.max_kb * 1024) {
+            setFileError(
+                `That file is ${formatSize(file.size)}. The limit for ${form.data.type}s is ${formatSize(limit.max_kb * 1024)}.`,
+            );
+
+            return;
+        }
+
+        setFileError(null);
+    }
+
     function submit(event: FormEvent) {
         event.preventDefault();
+
+        if (fileError) {
+            return;
+        }
+
         form.post(store(item.id).url, {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
                 form.reset();
+                setFileError(null);
                 setAdding(false);
             },
         });
@@ -106,6 +142,21 @@ export function MediaManager({ item }: { item: ChecklistItem }) {
                             );
                         }
 
+                        if (m.type === 'video') {
+                            return (
+                                <li
+                                    key={m.id}
+                                    className="group relative w-full max-w-xs"
+                                >
+                                    <VideoPlayer
+                                        src={url}
+                                        label={m.label ?? undefined}
+                                    />
+                                    {removeButton(true)}
+                                </li>
+                            );
+                        }
+
                         return (
                             <li
                                 key={m.id}
@@ -139,6 +190,7 @@ export function MediaManager({ item }: { item: ChecklistItem }) {
                             form.setData('type', value as MediaType);
                             form.setData('file', null);
                             form.setData('url', '');
+                            setFileError(null);
                         }}
                     >
                         <SelectTrigger size="sm" className="w-28">
@@ -168,15 +220,18 @@ export function MediaManager({ item }: { item: ChecklistItem }) {
                         <div className="flex-1">
                             <Input
                                 type="file"
+                                accept={limit?.accept}
                                 onChange={(e) =>
-                                    form.setData(
-                                        'file',
-                                        e.target.files?.[0] ?? null,
-                                    )
+                                    pickFile(e.target.files?.[0] ?? null)
                                 }
                                 className="h-8"
                             />
-                            <InputError message={form.errors.file} />
+                            {limit && !fileError && !form.errors.file && (
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Up to {formatSize(limit.max_kb * 1024)}
+                                </p>
+                            )}
+                            <InputError message={fileError ?? form.errors.file} />
                         </div>
                     )}
 
@@ -187,17 +242,47 @@ export function MediaManager({ item }: { item: ChecklistItem }) {
                         className="h-8 w-40"
                     />
 
-                    <Button type="submit" size="sm" disabled={form.processing}>
-                        Add
+                    <Button
+                        type="submit"
+                        size="sm"
+                        disabled={form.processing || fileError !== null}
+                    >
+                        {form.processing ? 'Uploading…' : 'Add'}
                     </Button>
                     <Button
                         type="button"
                         size="sm"
                         variant="ghost"
-                        onClick={() => setAdding(false)}
+                        onClick={() => {
+                            setFileError(null);
+                            setAdding(false);
+                        }}
                     >
                         Cancel
                     </Button>
+
+                    {form.progress && (
+                        <div className="w-full space-y-1">
+                            <div
+                                className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                                role="progressbar"
+                                aria-valuenow={form.progress.percentage ?? 0}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-label="Upload progress"
+                            >
+                                <div
+                                    className="h-full rounded-full bg-primary transition-[width]"
+                                    style={{
+                                        width: `${form.progress.percentage ?? 0}%`,
+                                    }}
+                                />
+                            </div>
+                            <p className="text-xs text-muted-foreground tabular-nums">
+                                Uploading… {form.progress.percentage ?? 0}%
+                            </p>
+                        </div>
+                    )}
                 </form>
             ) : (
                 <Button

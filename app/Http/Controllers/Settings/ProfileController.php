@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -49,6 +52,14 @@ class ProfileController extends Controller
     public function destroy(ProfileDeleteRequest $request): RedirectResponse
     {
         $user = $request->user();
+
+        // Deleting the last super admin would leave the org with nobody able to
+        // manage users, stores or the training content — and no way back in.
+        if ($user->isSuperAdmin() && User::where('role', Role::SuperAdmin)->count() <= 1) {
+            throw ValidationException::withMessages([
+                'password' => __('You are the only super admin. Promote another user before deleting your account.'),
+            ]);
+        }
 
         Auth::logout();
 

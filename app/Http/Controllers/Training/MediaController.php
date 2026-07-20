@@ -26,7 +26,25 @@ class MediaController extends Controller
         if ($type === MediaType::Link) {
             $attributes['url'] = $request->validated('url');
         } else {
-            $attributes['path'] = $request->file('file')->store("training/media/{$checklistItem->id}", 'public');
+            $file = $request->file('file');
+            $path = $file->store("training/media/{$checklistItem->id}", 'public');
+
+            // The public disk is configured with `throw => false`, so a failed
+            // write returns false instead of raising — don't persist a broken row.
+            if (! is_string($path) || $path === '') {
+                Inertia::flash('toast', [
+                    'type' => 'error',
+                    'message' => __('The file could not be saved. Please try again.'),
+                ]);
+
+                return back();
+            }
+
+            $attributes['path'] = $path;
+
+            // Stored files get a hashed name, so keep the original filename as the
+            // label when none was given — otherwise attachments render as "Attachment".
+            $attributes['label'] = $attributes['label'] ?: $file->getClientOriginalName();
         }
 
         $checklistItem->media()->create($attributes);

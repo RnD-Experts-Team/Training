@@ -40,7 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // responses for API clients.
         $exceptions->respond(function (Response $response, Throwable $e, Request $request): Response {
             $status = $response->getStatusCode();
-            $handled = [403, 404, 419, 429, 500, 503];
+            $handled = [403, 404, 413, 419, 429, 500, 503];
 
             if ($request->is('api/*') || $request->expectsJson() || ! in_array($status, $handled, true)) {
                 return $response;

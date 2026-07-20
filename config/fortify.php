@@ -161,7 +161,11 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Self-registration is intentionally DISABLED: this is an invite-only
+        // internal tool and new accounts default to the `manager` role, so a
+        // public /register would let anyone provision a privileged account.
+        // Super admins create users from the Management page instead.
+        // Features::registration(),
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([

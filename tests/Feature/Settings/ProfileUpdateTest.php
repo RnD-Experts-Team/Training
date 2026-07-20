@@ -79,6 +79,31 @@ class ProfileUpdateTest extends TestCase
         $this->assertNull($user->fresh());
     }
 
+    public function test_the_last_super_admin_cannot_delete_their_account()
+    {
+        // Otherwise nobody can manage users, stores or content — with no way back in.
+        $admin = User::factory()->superAdmin()->create();
+
+        $this->actingAs($admin)
+            ->from(route('profile.edit'))
+            ->delete(route('profile.destroy'), ['password' => 'password'])
+            ->assertSessionHasErrors('password');
+
+        $this->assertNotNull($admin->fresh());
+    }
+
+    public function test_a_super_admin_can_delete_their_account_when_another_remains()
+    {
+        User::factory()->superAdmin()->create();
+        $admin = User::factory()->superAdmin()->create();
+
+        $this->actingAs($admin)
+            ->delete(route('profile.destroy'), ['password' => 'password'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertNull($admin->fresh());
+    }
+
     public function test_correct_password_must_be_provided_to_delete_account()
     {
         $user = User::factory()->create();

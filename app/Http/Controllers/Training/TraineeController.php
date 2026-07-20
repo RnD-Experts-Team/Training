@@ -12,6 +12,7 @@ use App\Services\Training\TraineeProgress;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -84,18 +85,22 @@ class TraineeController extends Controller
             throw ValidationException::withMessages(['store_id' => __('Please choose a store.')]);
         }
 
-        $trainee = Trainee::create([
-            'name' => $request->validated('name'),
-            'position' => $request->validated('position'),
-            'hired_at' => $request->validated('hired_at'),
-            'store_id' => $storeId,
-            'created_by' => $user->id,
-        ]);
+        $trainee = DB::transaction(function () use ($request, $user, $storeId, $isManager): Trainee {
+            $trainee = Trainee::create([
+                'name' => $request->validated('name'),
+                'position' => $request->validated('position'),
+                'hired_at' => $request->validated('hired_at'),
+                'store_id' => $storeId,
+                'created_by' => $user->id,
+            ]);
 
-        // Managers automatically own the trainees they create.
-        if ($isManager) {
-            $trainee->managers()->attach($user->id);
-        }
+            // Managers automatically own the trainees they create.
+            if ($isManager) {
+                $trainee->managers()->attach($user->id);
+            }
+
+            return $trainee;
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Trainee added.')]);
 
@@ -158,9 +163,15 @@ class TraineeController extends Controller
         if ($storeId) {
             $allowedStoreIds = $user->isSuperAdmin() ? Store::pluck('id') : $user->stores->pluck('id');
 
-            if ($allowedStoreIds->contains($storeId)) {
-                $attributes['store_id'] = $storeId;
+            // Don't silently drop a store the user may not use and then report
+            // success — tell them the change was refused.
+            if (! $allowedStoreIds->contains($storeId)) {
+                throw ValidationException::withMessages([
+                    'store_id' => __('You cannot move a trainee to that store.'),
+                ]);
             }
+
+            $attributes['store_id'] = $storeId;
         }
 
         $trainee->update($attributes);

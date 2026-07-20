@@ -79,14 +79,15 @@ class TraineeProgress
         $sections = Section::ordered()->with([
             'categories' => fn ($query) => $query->orderBy('order'),
             'categories.items.media',
-            'categories.items.children.media',
+            // Recursive so arbitrarily deep sub-items don't cost a query each.
+            'categories.items.childrenRecursive',
         ])->get();
 
         $evaluations = $trainee->evaluations()->get()->keyBy('checklist_item_id');
         $currentStepId = null;
 
         $mapItem = function (ChecklistItem $item) use (&$mapItem, $evaluations, &$currentStepId): array {
-            $children = $item->children->map($mapItem)->all();
+            $children = $item->childrenRecursive->map($mapItem)->all();
             $evaluation = $evaluations->get($item->id);
             $completed = (bool) $evaluation?->completed;
 
@@ -120,7 +121,7 @@ class TraineeProgress
                 if ($evaluation && $evaluation->rating !== null) {
                     $ratings[] = (int) $evaluation->rating;
                 }
-                $ratings = array_merge($ratings, $collectRatings($item->children));
+                $ratings = array_merge($ratings, $collectRatings($item->childrenRecursive));
             }
 
             return $ratings;

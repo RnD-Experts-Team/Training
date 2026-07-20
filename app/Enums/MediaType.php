@@ -26,4 +26,55 @@ enum MediaType: string
     {
         return $this !== self::Link;
     }
+
+    /**
+     * Maximum upload size in KILOBYTES (Laravel's `max:` unit). Keep these at or
+     * below the PHP limits shipped in `public/.user.ini` — a file larger than
+     * the server can ingest kills the request before Laravel can answer.
+     */
+    public function maxKilobytes(): int
+    {
+        return match ($this) {
+            self::Image => 5 * 1024,    // 5 MB
+            self::Video => 50 * 1024,   // 50 MB
+            self::File => 10 * 1024,    // 10 MB
+            self::Link => 0,
+        };
+    }
+
+    /**
+     * The `accept` attribute for the file picker, so the OS dialog filters to
+     * what the server will actually take.
+     */
+    public function accept(): string
+    {
+        return match ($this) {
+            self::Image => 'image/jpeg,image/png,image/webp,image/gif',
+            self::Video => 'video/mp4,video/quicktime,video/webm',
+            self::File => '.pdf,.doc,.docx,.xlsx,.csv,.txt',
+            self::Link => '',
+        };
+    }
+
+    /**
+     * Upload constraints for every type, shared with the frontend so the client
+     * can reject an oversized file before it is ever sent.
+     *
+     * @return array<string, array{max_kb: int, accept: string}>
+     */
+    public static function uploadLimits(): array
+    {
+        $limits = [];
+
+        foreach (self::cases() as $case) {
+            if ($case->isUploaded()) {
+                $limits[$case->value] = [
+                    'max_kb' => $case->maxKilobytes(),
+                    'accept' => $case->accept(),
+                ];
+            }
+        }
+
+        return $limits;
+    }
 }

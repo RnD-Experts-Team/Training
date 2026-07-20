@@ -26,7 +26,7 @@ trait TrainingValidationRules
     {
         return [
             'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:2000'],
             'icon' => ['nullable', 'string', 'max:255'],
             'pie_content_review' => ['nullable', 'string', 'max:255'],
             'screen_to_shoulder' => ['nullable', 'string', 'max:255'],
@@ -41,7 +41,7 @@ trait TrainingValidationRules
     {
         return [
             'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:2000'],
             'color' => ['nullable', Rule::in(self::CATEGORY_COLORS)],
         ];
     }
@@ -54,7 +54,7 @@ trait TrainingValidationRules
     {
         return [
             'title' => ['required', 'string', 'max:255'],
-            'content' => ['nullable', 'string'],
+            'content' => ['nullable', 'string', 'max:10000'],
             'importance' => ['nullable', new Enum(Importance::class)],
             'parent_id' => [
                 'nullable',
@@ -87,18 +87,18 @@ trait TrainingValidationRules
         $rules = [
             'type' => ['required', new Enum(MediaType::class)],
             'label' => ['nullable', 'string', 'max:255'],
-            'url' => ['nullable', 'string'],
+            'url' => ['nullable', 'string', 'max:2048'],
             'file' => ['nullable', 'file'],
         ];
 
         if ($type === MediaType::Link->value) {
             $rules['url'] = ['required', 'url', 'max:2048'];
         } elseif ($type === MediaType::Image->value) {
-            $rules['file'] = ['required', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'];
+            $rules['file'] = ['required', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:'.MediaType::Image->maxKilobytes()];
         } elseif ($type === MediaType::Video->value) {
-            $rules['file'] = ['required', 'file', 'mimetypes:video/mp4,video/quicktime,video/webm', 'max:51200'];
+            $rules['file'] = ['required', 'file', 'mimetypes:video/mp4,video/quicktime,video/webm', 'max:'.MediaType::Video->maxKilobytes()];
         } elseif ($type === MediaType::File->value) {
-            $rules['file'] = ['required', 'file', 'mimes:pdf,doc,docx,xlsx,csv,txt', 'max:10240'];
+            $rules['file'] = ['required', 'file', 'mimes:pdf,doc,docx,xlsx,csv,txt', 'max:'.MediaType::File->maxKilobytes()];
         }
 
         return $rules;

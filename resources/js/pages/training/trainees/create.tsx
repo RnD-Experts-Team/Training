@@ -113,9 +113,12 @@ export default function TraineeCreate() {
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <InputError message={form.errors.store_id} />
                             </div>
                         )}
+
+                        {/* Outside the picker: a manager with no usable store
+                            gets this error while the picker itself is hidden. */}
+                        <InputError message={form.errors.store_id} />
 
                         <Button type="submit" disabled={form.processing}>
                             Add trainee

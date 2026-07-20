@@ -51,6 +51,20 @@ class StoreManagementTest extends TestCase
         $this->assertDatabaseMissing('stores', ['id' => $store->id]);
     }
 
+    public function test_store_with_managers_cannot_be_deleted(): void
+    {
+        // The manager_store pivot cascades, so deleting would silently strip a
+        // manager of their access with no warning.
+        $admin = User::factory()->superAdmin()->create();
+        $store = Store::factory()->create();
+        User::factory()->manager($store)->create();
+
+        $this->actingAs($admin)->delete(route('admin.stores.destroy', $store))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('stores', ['id' => $store->id]);
+    }
+
     public function test_store_with_trainees_cannot_be_deleted(): void
     {
         $admin = User::factory()->superAdmin()->create();

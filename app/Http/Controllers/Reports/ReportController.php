@@ -59,7 +59,7 @@ class ReportController extends Controller
         $request->validate([
             'format' => ['nullable', Rule::in(['csv', 'pdf'])],
             'report' => ['nullable', Rule::in(['trainees', 'stores', 'managers', 'stations'])],
-            'store' => ['nullable', 'integer'],
+            'store' => ['nullable', 'integer', 'exists:stores,id'],
             'weeks' => ['nullable', 'integer'],
         ]);
 

@@ -10,30 +10,23 @@ class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
+    /**
+     * This is an invite-only internal tool and new accounts default to the
+     * `manager` role, so a public /register would let anyone provision a
+     * privileged account. Super admins create users from the Management page.
+     */
+    public function test_self_registration_is_disabled(): void
     {
-        parent::setUp();
+        $this->assertFalse(Features::enabled(Features::registration()));
 
-        $this->skipUnlessFortifyHas(Features::registration());
-    }
-
-    public function test_registration_screen_can_be_rendered()
-    {
-        $response = $this->get(route('register'));
-
-        $response->assertOk();
-    }
-
-    public function test_new_users_can_register()
-    {
-        $response = $this->post(route('register.store'), [
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->post('/register', [
+            'name' => 'Uninvited User',
+            'email' => 'uninvited@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
-        ]);
+        ])->assertNotFound();
 
-        $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['email' => 'uninvited@example.com']);
     }
 }

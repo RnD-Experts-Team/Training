@@ -1,4 +1,5 @@
 import { ExternalLink, FileText, LinkIcon } from 'lucide-react';
+import { VideoPlayer } from '@/components/training/video-player';
 import type { MediaItem } from '@/types/training';
 
 /**
@@ -37,13 +38,11 @@ export function MediaAttachments({ media }: { media: MediaItem[] }) {
 
                 if (m.type === 'video') {
                     return (
-                        <div key={m.id} className="w-56">
-                            <video
-                                src={url}
-                                controls
-                                preload="metadata"
-                                className="h-32 w-full rounded-md border bg-black object-cover"
-                            />
+                        <div
+                            key={m.id}
+                            className="w-full max-w-md min-w-0 basis-full"
+                        >
+                            <VideoPlayer src={url} label={m.label ?? undefined} />
                             {m.label && (
                                 <p className="mt-1 truncate text-xs text-muted-foreground">
                                     {m.label}

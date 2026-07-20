@@ -42,7 +42,9 @@ class DashboardController extends Controller
         $trainees = Trainee::visibleTo($user)->with('store:id,name')->orderBy('name')->get();
         $stats = $progress->rosterStats($trainees->pluck('id'));
 
-        $leafTotal = $trainees->isNotEmpty() ? ($stats[$trainees->first()->id]['total'] ?? 0) : 0;
+        // The countable total is global, so read it from the source rather than
+        // inferring it from whichever trainee happens to sort first.
+        $leafTotal = $progress->leafItemIds()->count();
         $completedSum = array_sum(array_column($stats, 'completed'));
         $ratings = array_filter(array_column($stats, 'average_rating'), fn ($value) => $value !== null);
 

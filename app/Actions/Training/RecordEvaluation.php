@@ -31,21 +31,64 @@ class RecordEvaluation
                 'completed_at' => $completedAt,
             ]);
 
-            // 2. Down-cascade completion to sub-items (preserve their rating/notes).
-            $childIds = ChecklistItem::where('parent_id', $item->id)->pluck('id');
-            foreach ($childIds as $childId) {
-                $this->upsert($trainee, (int) $childId, [
+            // 2. Down-cascade to every descendant, not just direct children —
+            //    sub-items may nest deeper (preserve their rating/notes).
+            foreach ($this->descendantIds($item->id) as $descendantId) {
+                $this->upsert($trainee, $descendantId, [
                     'completed' => $completed,
                     'evaluated_by' => $evaluator->id,
                     'completed_at' => $completedAt,
                 ]);
             }
 
-            // 3. Up-cascade: a parent is complete only when all of its children are.
-            if ($item->parent_id !== null) {
-                $this->recomputeParent($trainee, (int) $item->parent_id, $evaluator);
-            }
+            // 3. Up-cascade the whole ancestor chain: a parent is complete only
+            //    when all of its children are, and that can change a grandparent.
+            $this->recomputeAncestors($trainee, $item->parent_id, $evaluator);
         });
+    }
+
+    /**
+     * Every descendant id beneath an item, walked level by level.
+     *
+     * @return array<int, int>
+     */
+    private function descendantIds(int $itemId): array
+    {
+        $collected = [];
+        $frontier = [$itemId];
+
+        while (true) {
+            $children = ChecklistItem::whereIn('parent_id', $frontier)
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->reject(fn (int $id): bool => in_array($id, $collected, true))
+                ->values()
+                ->all();
+
+            if ($children === []) {
+                return $collected;
+            }
+
+            $collected = array_merge($collected, $children);
+            $frontier = $children;
+        }
+    }
+
+    /**
+     * Recompute completion for each ancestor, bottom-up.
+     */
+    private function recomputeAncestors(Trainee $trainee, ?int $parentId, User $evaluator): void
+    {
+        $seen = [];
+
+        while ($parentId !== null && ! in_array($parentId, $seen, true)) {
+            $seen[] = $parentId;
+
+            $this->recomputeParent($trainee, $parentId, $evaluator);
+
+            $next = ChecklistItem::whereKey($parentId)->value('parent_id');
+            $parentId = $next !== null ? (int) $next : null;
+        }
     }
 
     private function recomputeParent(Trainee $trainee, int $parentId, User $evaluator): void

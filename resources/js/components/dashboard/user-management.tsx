@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import { Trash2, UserPlus } from 'lucide-react';
+import { toast } from 'sonner';
 import { InviteUserDialog } from '@/components/dashboard/invite-user-dialog';
 import { StoreMultiSelect } from '@/components/dashboard/store-multi-select';
 import { Paginator } from '@/components/pagination';
@@ -37,7 +38,16 @@ export function UserManagement({
         router.patch(
             update(user.id).url,
             { role, store_ids: role === 'manager' ? storeIds : [] },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                // Without this the row silently snaps back (e.g. unchecking a
+                // manager's last store) and the admin has no idea why.
+                onError: (errors) =>
+                    toast.error(
+                        Object.values(errors)[0] ??
+                            'That change could not be saved.',
+                    ),
+            },
         );
     }
 

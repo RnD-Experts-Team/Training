@@ -83,6 +83,24 @@ class TraineeManagementTest extends TestCase
         $this->assertSame($storeB->id, Trainee::firstWhere('name', 'Picked')->store_id);
     }
 
+    public function test_manager_cannot_move_a_trainee_to_a_foreign_store(): void
+    {
+        $store = Store::factory()->create();
+        $foreign = Store::factory()->create();
+        $manager = User::factory()->manager($store)->create();
+        $trainee = Trainee::factory()->forStore($store)->create();
+
+        // The refusal must surface as an error, not a silent no-op reported as success.
+        $this->actingAs($manager)
+            ->put(route('trainees.update', $trainee), [
+                'name' => $trainee->name,
+                'store_id' => $foreign->id,
+            ])
+            ->assertSessionHasErrors('store_id');
+
+        $this->assertSame($store->id, $trainee->refresh()->store_id);
+    }
+
     public function test_manager_cannot_create_a_trainee_in_a_foreign_store(): void
     {
         $manager = User::factory()->manager()->create();

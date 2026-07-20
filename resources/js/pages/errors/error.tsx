@@ -33,6 +33,12 @@ const STATUSES: Record<number, ErrorMeta> = {
         description: "The page you're looking for doesn't exist or has moved.",
         icon: FileQuestion,
     },
+    413: {
+        title: 'File too large',
+        description:
+            'That upload is bigger than the server accepts. Try a smaller file, or compress the video first.',
+        icon: FileQuestion,
+    },
     419: {
         title: 'Session expired',
         description: 'Your session timed out for security. Please refresh and try again.',

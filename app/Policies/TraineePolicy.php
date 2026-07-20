@@ -71,6 +71,8 @@ class TraineePolicy
             return true;
         }
 
-        return $user->assignedTrainees()->whereKey($trainee->getKey())->exists();
+        // Load the pivot once per request — this runs on every view/update/
+        // delete/evaluate check, and evaluate fires on each checkbox toggle.
+        return $user->assignedTrainees->contains($trainee->getKey());
     }
 }

@@ -2,6 +2,11 @@ export type Importance = 'not_necessary' | 'highly_important' | 'needs_review';
 
 export type MediaType = 'link' | 'file' | 'image' | 'video';
 
+/** Upload constraints shared from the server (see MediaType::uploadLimits). */
+export type MediaUploadLimit = { max_kb: number; accept: string };
+
+export type MediaLimits = Partial<Record<MediaType, MediaUploadLimit>>;
+
 export type MediaItem = {
     id: number;
     checklist_item_id: number;

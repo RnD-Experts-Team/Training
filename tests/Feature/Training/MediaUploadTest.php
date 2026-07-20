@@ -37,6 +37,90 @@ class MediaUploadTest extends TestCase
         $this->assertStringContainsString($media->path, (string) $media->display_url);
     }
 
+    public function test_super_admin_can_upload_a_video(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->superAdmin()->create();
+        $item = ChecklistItem::factory()->create();
+
+        $this->actingAs($admin)->post(route('training.media.store', $item), [
+            'type' => MediaType::Video->value,
+            'file' => UploadedFile::fake()->create('demo.mp4', 2048, 'video/mp4'),
+        ])->assertSessionHasNoErrors();
+
+        $media = $item->media()->sole();
+        $this->assertSame(MediaType::Video, $media->type);
+        Storage::disk('public')->assertExists($media->path);
+
+        // With no label given, the original filename is kept so the attachment
+        // doesn't render as a generic "Attachment".
+        $this->assertSame('demo.mp4', $media->label);
+    }
+
+    public function test_oversized_video_is_rejected(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->superAdmin()->create();
+        $item = ChecklistItem::factory()->create();
+
+        $tooBig = MediaType::Video->maxKilobytes() + 1024;
+
+        $this->actingAs($admin)->post(route('training.media.store', $item), [
+            'type' => MediaType::Video->value,
+            'file' => UploadedFile::fake()->create('huge.mp4', $tooBig, 'video/mp4'),
+        ])->assertSessionHasErrors('file');
+
+        $this->assertSame(0, $item->media()->count());
+    }
+
+    public function test_non_video_mime_is_rejected_for_video_type(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->superAdmin()->create();
+        $item = ChecklistItem::factory()->create();
+
+        $this->actingAs($admin)->post(route('training.media.store', $item), [
+            'type' => MediaType::Video->value,
+            'file' => UploadedFile::fake()->create('not-a-video.pdf', 100, 'application/pdf'),
+        ])->assertSessionHasErrors('file');
+    }
+
+    public function test_upload_limits_are_shared_with_the_frontend(): void
+    {
+        $limits = MediaType::uploadLimits();
+
+        // Links aren't uploads; every uploadable type needs a size + accept hint.
+        $this->assertArrayNotHasKey('link', $limits);
+
+        foreach (['image', 'video', 'file'] as $type) {
+            $this->assertArrayHasKey($type, $limits);
+            $this->assertGreaterThan(0, $limits[$type]['max_kb']);
+            $this->assertNotSame('', $limits[$type]['accept']);
+        }
+    }
+
+    public function test_super_admin_can_delete_media_and_its_file(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->superAdmin()->create();
+        $item = ChecklistItem::factory()->create();
+
+        $this->actingAs($admin)->post(route('training.media.store', $item), [
+            'type' => MediaType::Image->value,
+            'file' => UploadedFile::fake()->image('temp.jpg'),
+        ])->assertSessionHasNoErrors();
+
+        $media = $item->media()->sole();
+        $path = $media->path;
+
+        $this->actingAs($admin)
+            ->delete(route('training.media.destroy', $media))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseMissing('media_items', ['id' => $media->id]);
+        Storage::disk('public')->assertMissing($path);
+    }
+
     public function test_super_admin_can_add_a_link(): void
     {
         $admin = User::factory()->superAdmin()->create();

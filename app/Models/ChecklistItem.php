@@ -67,14 +67,15 @@ class ChecklistItem extends Model
     }
 
     /**
-     * Recursive children load. Defined for completeness; hot paths eager-load
-     * `children` explicitly to bound query cost.
+     * Children all the way down, with their media — eager-load this (instead of
+     * `children`) anywhere the full sub-item tree is walked, so depth doesn't
+     * turn into one query per node.
      *
      * @return HasMany<ChecklistItem, $this>
      */
     public function childrenRecursive(): HasMany
     {
-        return $this->children()->with('childrenRecursive');
+        return $this->children()->with(['media', 'childrenRecursive']);
     }
 
     /**
