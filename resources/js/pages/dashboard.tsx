@@ -12,6 +12,7 @@ import { StatCard } from '@/components/dashboard/stat-card';
 import { CompletionBar } from '@/components/training/completion-bar';
 import { RatingMeter } from '@/components/training/rating-meter';
 import { Button } from '@/components/ui/button';
+import { useSyncStoreFilter } from '@/hooks/use-store-filter';
 import { dashboard } from '@/routes';
 import { management } from '@/routes/admin';
 import { index as traineesIndex, show as traineeShow } from '@/routes/trainees';
@@ -24,6 +25,7 @@ import type {
 
 type DashboardProps = {
     isSuperAdmin: boolean;
+    filters: { store: number | null };
     stats?: DashboardStats;
     managerStats?: ManagerStats;
     trainees?: TraineeSummary[];
@@ -35,6 +37,8 @@ const GLASS_BUTTON =
 export default function Dashboard() {
     const page = usePage<DashboardProps & { auth: Auth }>().props;
     const firstName = page.auth.user.name.split(' ')[0];
+
+    useSyncStoreFilter(page.filters.store);
 
     return (
         <>
@@ -68,8 +72,8 @@ function SuperAdminView({
                     action={
                         <Button asChild className={GLASS_BUTTON}>
                             <Link href={management().url}>
-                                <Building2 className="size-4" /> Manage team &amp;
-                                stores
+                                <Building2 className="size-4" /> Manage team
+                                &amp; stores
                             </Link>
                         </Button>
                     }

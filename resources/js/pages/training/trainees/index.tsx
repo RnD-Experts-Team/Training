@@ -12,6 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useStoreFilter, useSyncStoreFilter } from '@/hooks/use-store-filter';
 import { create, index, show } from '@/routes/trainees';
 import type { BreadcrumbItem } from '@/types';
 import type { StoreOption, TraineeSummary } from '@/types/training';
@@ -24,8 +25,13 @@ export default function TraineesIndex() {
         canChooseStore: boolean;
     }>().props;
 
+    const { setSelectedStoreId } = useStoreFilter();
+    useSyncStoreFilter(filters.store);
+
     function filterStore(value: string) {
-        router.get(index().url, value === 'all' ? {} : { store: value }, {
+        const storeId = value === 'all' ? null : Number(value);
+        setSelectedStoreId(storeId);
+        router.get(index().url, storeId ? { store: storeId } : {}, {
             preserveState: true,
             preserveScroll: true,
             replace: true,

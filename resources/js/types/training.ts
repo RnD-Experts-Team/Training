@@ -1,4 +1,7 @@
-export type Importance = 'optional' | 'moderately_important' | 'highly_important';
+export type Importance =
+    | 'optional'
+    | 'moderately_important'
+    | 'highly_important';
 
 export type MediaType = 'link' | 'file' | 'image' | 'video';
 
@@ -68,6 +71,11 @@ export const IMPORTANCE_OPTIONS: { value: Importance; label: string }[] = [
 ];
 
 export type StoreOption = { id: number; name: string };
+
+export type StoreSwitcherContext = {
+    canChoose: boolean;
+    options: StoreOption[];
+};
 
 export type TraineeStats = {
     completed: number;

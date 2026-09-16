@@ -33,9 +33,9 @@ class ReportController extends Controller
 
         return Inertia::render('reports/index', [
             'isSuperAdmin' => $user->isSuperAdmin(),
-            'canChooseStore' => $user->isSuperAdmin(),
-            'storeOptions' => $user->isSuperAdmin()
-                ? Store::orderBy('name')->get(['id', 'name'])
+            'canChooseStore' => $user->canFilterByStore(),
+            'storeOptions' => $user->canFilterByStore()
+                ? ($user->isSuperAdmin() ? Store::orderBy('name')->get(['id', 'name']) : $user->stores()->orderBy('stores.name')->get(['stores.id', 'stores.name']))
                 : [],
             'weekOptions' => ReportAnalytics::WEEK_OPTIONS,
             'filters' => ['store' => $scope->storeId, 'weeks' => $scope->weeks],

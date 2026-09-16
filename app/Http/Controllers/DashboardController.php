@@ -17,29 +17,33 @@ class DashboardController extends Controller
     public function index(Request $request, TraineeProgress $progress): Response
     {
         $user = $request->user();
+        $storeId = $user->resolveStoreFilter($request->integer('store') ?: null);
 
         return $user->isSuperAdmin()
-            ? $this->superAdminDashboard()
-            : $this->managerDashboard($user, $progress);
+            ? $this->superAdminDashboard($storeId)
+            : $this->managerDashboard($user, $progress, $storeId);
     }
 
-    private function superAdminDashboard(): Response
+    private function superAdminDashboard(?int $storeId): Response
     {
         return Inertia::render('dashboard', [
             'isSuperAdmin' => true,
+            'filters' => ['store' => $storeId],
             'stats' => [
-                'users' => User::count(),
-                'stores' => Store::count(),
-                'trainees' => Trainee::count(),
+                'users' => $storeId
+                    ? Store::whereKey($storeId)->first()?->managers()->count() ?? 0
+                    : User::count(),
+                'stores' => $storeId ? 1 : Store::count(),
+                'trainees' => Trainee::query()->inStore($storeId)->count(),
                 'sections' => Section::count(),
                 'items' => ChecklistItem::count(),
             ],
         ]);
     }
 
-    private function managerDashboard(User $user, TraineeProgress $progress): Response
+    private function managerDashboard(User $user, TraineeProgress $progress, ?int $storeId): Response
     {
-        $trainees = Trainee::visibleTo($user)->with('store:id,name')->orderBy('name')->get();
+        $trainees = Trainee::visibleTo($user)->inStore($storeId)->with('store:id,name')->orderBy('name')->get();
         $stats = $progress->rosterStats($trainees->pluck('id'));
 
         // The countable total is global, so read it from the source rather than
@@ -50,6 +54,7 @@ class DashboardController extends Controller
 
         return Inertia::render('dashboard', [
             'isSuperAdmin' => false,
+            'filters' => ['store' => $storeId],
             'managerStats' => [
                 'trainees' => $trainees->count(),
                 'completion' => $trainees->count() * $leafTotal > 0

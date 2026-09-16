@@ -28,7 +28,8 @@ class TraineeController extends Controller
         $this->authorize('viewAny', Trainee::class);
 
         $user = $request->user();
-        $storeId = $user->isSuperAdmin() ? $request->integer('store') ?: null : null;
+        $canChooseStore = $user->canFilterByStore();
+        $storeId = $user->resolveStoreFilter($request->integer('store') ?: null);
 
         $trainees = Trainee::visibleTo($user)
             ->inStore($storeId)
@@ -46,9 +47,11 @@ class TraineeController extends Controller
                 'store' => $trainee->store->only(['id', 'name']),
                 'stats' => $stats[$trainee->id],
             ])->all(),
-            'stores' => $user->isSuperAdmin() ? Store::orderBy('name')->get(['id', 'name']) : [],
+            'stores' => $canChooseStore
+                ? ($user->isSuperAdmin() ? Store::orderBy('name')->get(['id', 'name']) : $user->stores()->orderBy('stores.name')->get(['stores.id', 'stores.name']))
+                : [],
             'filters' => ['store' => $storeId],
-            'canChooseStore' => $user->isSuperAdmin(),
+            'canChooseStore' => $canChooseStore,
         ]);
     }
 

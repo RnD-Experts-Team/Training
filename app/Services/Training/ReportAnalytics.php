@@ -41,7 +41,7 @@ class ReportAnalytics
      */
     public function for(User $user, array $filters = []): ReportScope
     {
-        $storeId = $user->isSuperAdmin() ? ($filters['store'] ?? null) : null;
+        $storeId = $user->resolveStoreFilter($filters['store'] ?? null);
 
         $weeks = (int) ($filters['weeks'] ?? self::WEEK_OPTIONS[0]);
         if (! in_array($weeks, self::WEEK_OPTIONS, true)) {

@@ -15,6 +15,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useStoreFilter, useSyncStoreFilter } from '@/hooks/use-store-filter';
 import { exportMethod, index } from '@/routes/reports';
 import type { BreadcrumbItem } from '@/types';
 import type {
@@ -67,6 +68,9 @@ export default function ReportsIndex() {
 
     const [area, setArea] = useState<ReportArea>('overview');
 
+    const { setSelectedStoreId } = useStoreFilter();
+    useSyncStoreFilter(filters.store);
+
     const csvReportForArea: Record<ReportArea, string> = {
         overview: 'trainees',
         stores: 'stores',
@@ -96,6 +100,10 @@ export default function ReportsIndex() {
         const store =
             next.store ?? (filters.store ? String(filters.store) : 'all');
         const weeks = next.weeks ?? String(filters.weeks);
+
+        if (next.store !== undefined) {
+            setSelectedStoreId(store === 'all' ? null : Number(store));
+        }
 
         const params: Record<string, string> = {};
 
