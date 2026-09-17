@@ -90,6 +90,10 @@ export type ImportanceRow = {
     evaluations: number;
 };
 
-export type ReportFilters = { store: number | null; weeks: number };
+export type ReportFilters = {
+    store: number | null;
+    weeks: number;
+    includeArchived: boolean;
+};
 
 export type ReportArea = 'overview' | 'stores' | 'trainees' | 'content';

@@ -19,10 +19,16 @@ use Illuminate\Support\Carbon;
  * @property string|null $position
  * @property Carbon|null $hired_at
  * @property int|null $created_by
+ * @property Carbon|null $archived_at
+ * @property int|null $archived_by
+ * @property bool $needs_development
  * @property-read Store $store
  * @property-read User|null $creator
+ * @property-read User|null $archivedBy
  * @property-read Collection<int, User> $managers
  * @property-read Collection<int, Evaluation> $evaluations
+ * @property-read Collection<int, ChecklistItem> $developmentItems
+ * @property-read Collection<int, QuizAttempt> $quizAttempts
  */
 class Trainee extends Model
 {
@@ -30,7 +36,10 @@ class Trainee extends Model
     use HasFactory;
 
     /** @var list<string> */
-    protected $fillable = ['store_id', 'name', 'position', 'hired_at', 'created_by'];
+    protected $fillable = [
+        'store_id', 'name', 'position', 'hired_at', 'created_by',
+        'archived_at', 'archived_by', 'needs_development',
+    ];
 
     /**
      * @return array<string, string>
@@ -39,6 +48,8 @@ class Trainee extends Model
     {
         return [
             'hired_at' => 'date',
+            'archived_at' => 'datetime',
+            'needs_development' => 'boolean',
         ];
     }
 
@@ -59,6 +70,17 @@ class Trainee extends Model
     }
 
     /**
+     * Who archived this trainee (null if it was never archived, or the
+     * archiving user has since been removed).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function archivedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'archived_by');
+    }
+
+    /**
      * Managers assigned to evaluate this trainee.
      *
      * @return BelongsToMany<User, $this>
@@ -74,6 +96,28 @@ class Trainee extends Model
     public function evaluations(): HasMany
     {
         return $this->hasMany(Evaluation::class);
+    }
+
+    /**
+     * The curated subset of existing checklist items making up this
+     * trainee's individualized Development Plan (only meaningful when
+     * `needs_development` is true). Scoring these uses the same evaluation
+     * records as the standard checklist — this is a focused view into it,
+     * not a separate kind of progress.
+     *
+     * @return BelongsToMany<ChecklistItem, $this>
+     */
+    public function developmentItems(): BelongsToMany
+    {
+        return $this->belongsToMany(ChecklistItem::class, 'development_plan_items');
+    }
+
+    /**
+     * @return HasMany<QuizAttempt, $this>
+     */
+    public function quizAttempts(): HasMany
+    {
+        return $this->hasMany(QuizAttempt::class);
     }
 
     /**
@@ -111,5 +155,43 @@ class Trainee extends Model
     public function scopeInStore(Builder $query, ?int $storeId): Builder
     {
         return $query->when($storeId, fn (Builder $q) => $q->where('store_id', $storeId));
+    }
+
+    /**
+     * The active roster — everyone not archived. This is the default view
+     * everywhere (index, dashboard); archived trainees are opt-in.
+     *
+     * @param  Builder<Trainee>  $query
+     * @return Builder<Trainee>
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->whereNull('archived_at');
+    }
+
+    /**
+     * @param  Builder<Trainee>  $query
+     * @return Builder<Trainee>
+     */
+    public function scopeArchived(Builder $query): Builder
+    {
+        return $query->whereNotNull('archived_at');
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
+    /**
+     * Trainees currently flagged for extra coaching support (the Dashboard's
+     * Development Zone panel).
+     *
+     * @param  Builder<Trainee>  $query
+     * @return Builder<Trainee>
+     */
+    public function scopeNeedsDevelopment(Builder $query): Builder
+    {
+        return $query->where('needs_development', true);
     }
 }

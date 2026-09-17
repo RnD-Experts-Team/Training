@@ -4,8 +4,10 @@ import {
     // BookOpen,
     Building2,
     ClipboardList,
+    FileQuestion,
     // FolderGit2,
     LayoutGrid,
+    TrendingUp,
     Users,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
@@ -24,8 +26,10 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { management } from '@/routes/admin';
+import { index as developmentZoneIndex } from '@/routes/development-zone';
 import { index as reportsIndex } from '@/routes/reports';
 import { index as traineesIndex } from '@/routes/trainees';
+import { index as quizResultsIndex } from '@/routes/training/quiz-results';
 import { index as sectionsIndex } from '@/routes/training/sections';
 import type { Auth, NavItem } from '@/types';
 
@@ -46,6 +50,11 @@ export function AppSidebar() {
             icon: Users,
         },
         {
+            title: 'Development Zone',
+            href: developmentZoneIndex(),
+            icon: TrendingUp,
+        },
+        {
             title: 'Reports',
             href: reportsIndex(),
             icon: BarChart3,
@@ -63,6 +72,11 @@ export function AppSidebar() {
                 title: 'Management',
                 href: management(),
                 icon: Building2,
+            },
+            {
+                title: 'Quiz Results',
+                href: quizResultsIndex(),
+                icon: FileQuestion,
             },
         );
     }

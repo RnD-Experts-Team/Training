@@ -44,18 +44,49 @@ export type Category = {
     items?: ChecklistItem[];
 };
 
+export type SectionStatus = 'draft' | 'published';
+
 export type Section = {
     id: number;
     title: string;
     description: string | null;
     icon: string | null;
     order: number;
+    status: SectionStatus;
     pie_content_review: string | null;
     screen_to_shoulder: string | null;
     hands_on_shifts: string | null;
     categories?: Category[];
     categories_count?: number;
     checklist_items_count?: number;
+    quiz?: Quiz | null;
+};
+
+export type SectionStatusCounts = {
+    all: number;
+    draft: number;
+    published: number;
+};
+
+export type QuizQuestionOption = {
+    id: number;
+    text: string;
+    is_correct: boolean;
+    order: number;
+};
+
+export type QuizQuestion = {
+    id: number;
+    prompt: string;
+    order: number;
+    options: QuizQuestionOption[];
+};
+
+/** A station's quiz as authored in the Content Builder. */
+export type Quiz = {
+    id: number;
+    section_id: number;
+    questions: QuizQuestion[];
 };
 
 export type MoveTarget = {
@@ -98,6 +129,14 @@ export type TraineeDetail = {
     hired_at: string | null;
     store: StoreOption;
     managers: { id: number; name: string }[];
+    archived_at: string | null;
+    archived_by: { id: number; name: string } | null;
+    needs_development: boolean;
+};
+
+export type TraineeStatusCounts = {
+    active: number;
+    archived: number;
 };
 
 export type EvaluationState = {
@@ -129,6 +168,19 @@ export type ProgressCategory = {
     items: EvaluationItem[];
 };
 
+export type QuizAttemptStatus = 'sent' | 'completed';
+
+/**
+ * A section's quiz status as seen from the trainee page — deliberately
+ * never carries a score or answers (see TraineeProgress::quizStatus). Safe
+ * for any manager who can view this trainee, not just admins.
+ */
+export type SectionQuiz = {
+    id: number;
+    questions_count: number;
+    attempt: { status: QuizAttemptStatus; link: string | null } | null;
+};
+
 export type ProgressSection = {
     id: number;
     title: string;
@@ -139,6 +191,7 @@ export type ProgressSection = {
     hands_on_shifts: string | null;
     average_rating: number | null;
     categories: ProgressCategory[];
+    quiz: SectionQuiz | null;
 };
 
 export type TraineeProgressData = {
@@ -180,4 +233,74 @@ export type ManagerStats = {
     trainees: number;
     completion: number;
     average_rating: number | null;
+};
+
+export type DevelopmentPickerItem = { id: number; title: string };
+
+export type DevelopmentPickerCategory = {
+    id: number;
+    title: string;
+    items: DevelopmentPickerItem[];
+};
+
+export type DevelopmentPickerSection = {
+    id: number;
+    title: string;
+    categories: DevelopmentPickerCategory[];
+};
+
+export type DevelopmentPlanItem = EvaluationItem & {
+    section_title: string;
+    category_title: string;
+};
+
+export type DevelopmentStats = { completed: number; total: number };
+
+export type DevelopmentPlanData = {
+    items: DevelopmentPlanItem[];
+    stats: DevelopmentStats;
+};
+
+export type DevelopmentZoneTrainee = {
+    id: number;
+    name: string;
+    position: string | null;
+    store: StoreOption;
+    stats: DevelopmentStats;
+};
+
+/** A row in the training-team-only Quiz Results list. */
+export type QuizAttemptRow = {
+    id: number;
+    trainee: { id: number; name: string };
+    store: StoreOption;
+    section: { id: number; title: string };
+    status: QuizAttemptStatus;
+    score: number | null;
+    sent_at: string;
+    completed_at: string | null;
+};
+
+/** One question's full breakdown for the Quiz Results detail page. */
+export type QuizResultOption = {
+    id: number;
+    text: string;
+    is_correct: boolean;
+    is_chosen: boolean;
+};
+
+export type QuizResultQuestion = {
+    id: number;
+    prompt: string;
+    options: QuizResultOption[];
+};
+
+export type QuizResultDetail = {
+    id: number;
+    trainee: { id: number; name: string };
+    section: { id: number; title: string };
+    status: QuizAttemptStatus;
+    score: number | null;
+    sent_at: string;
+    completed_at: string | null;
 };

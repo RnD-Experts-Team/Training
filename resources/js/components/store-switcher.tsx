@@ -18,6 +18,7 @@ import type { StoreSwitcherContext } from '@/types/training';
 const STORE_AWARE_PAGES = new Set([
     'dashboard',
     'training/trainees/index',
+    'training/development-zone/index',
     'reports/index',
 ]);
 

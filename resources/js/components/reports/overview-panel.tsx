@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { DistributionChart } from '@/components/reports/distribution-chart';
-import { ReportCard } from '@/components/reports/report-card';
+import { ReportCard, ReportEmpty } from '@/components/reports/report-card';
 import { TrendChart } from '@/components/reports/trend-chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import type {
@@ -44,9 +44,12 @@ export function OverviewPanel({
     const score =
         overview.average_score !== null ? `${overview.average_score}%` : '—';
 
+    const hasTrend = (trend ?? []).some((point) => point.count > 0);
+    const hasDistribution = (distribution ?? []).some((band) => band.count > 0);
+
     return (
         <div className="space-y-6">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 sm:[&>*:last-child]:col-span-2 xl:[&>*:last-child]:col-span-1">
                 <StatCard
                     label="Trainees"
                     value={overview.trainees}
@@ -79,19 +82,30 @@ export function OverviewPanel({
                 />
             </div>
 
-            <Deferred data={['trend', 'distribution']} fallback={<ChartsSkeleton />}>
+            <Deferred
+                data={['trend', 'distribution']}
+                fallback={<ChartsSkeleton />}
+            >
                 <div className="grid gap-4 lg:grid-cols-2">
                     <ReportCard
                         title="Completion trend"
                         description="Training steps completed per week"
                     >
-                        <TrendChart data={trend ?? []} />
+                        {hasTrend ? (
+                            <TrendChart data={trend ?? []} />
+                        ) : (
+                            <ReportEmpty message="No completions recorded in this window yet." />
+                        )}
                     </ReportCard>
                     <ReportCard
                         title="Score distribution"
                         description="How evaluation scores are spread"
                     >
-                        <DistributionChart data={distribution ?? []} />
+                        {hasDistribution ? (
+                            <DistributionChart data={distribution ?? []} />
+                        ) : (
+                            <ReportEmpty message="No scored items yet." />
+                        )}
                     </ReportCard>
                 </div>
             </Deferred>

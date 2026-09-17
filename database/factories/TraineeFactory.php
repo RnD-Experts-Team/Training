@@ -36,4 +36,24 @@ class TraineeFactory extends Factory
             'store_id' => $store->id,
         ]);
     }
+
+    /**
+     * Retired from the active roster.
+     */
+    public function archived(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'archived_at' => now(),
+        ]);
+    }
+
+    /**
+     * Flagged for extra coaching support (Dashboard Development Zone).
+     */
+    public function needsDevelopmentFlagged(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'needs_development' => true,
+        ]);
+    }
 }

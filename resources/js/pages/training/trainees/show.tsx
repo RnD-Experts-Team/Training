@@ -1,9 +1,12 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
+    ArchiveRestore,
     ArrowLeft,
+    Archive as ArchiveIcon,
     ChevronDown,
     Clock,
     Pencil,
+    Sparkles,
     Trash2,
     Users,
 } from 'lucide-react';
@@ -12,7 +15,10 @@ import { AssignManagersDialog } from '@/components/training/assign-managers-dial
 import { CategorySection } from '@/components/training/category-section';
 import { CompletionBar } from '@/components/training/completion-bar';
 import { ConfirmDeleteDialog } from '@/components/training/confirm-delete-dialog';
+import { DevelopmentPlanPanel } from '@/components/training/development-plan-panel';
 import { RatingMeter } from '@/components/training/rating-meter';
+import { SectionQuizCard } from '@/components/training/section-quiz-card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -21,9 +27,13 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { destroy, edit, index } from '@/routes/trainees';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { archive, destroy, edit, index, restore } from '@/routes/trainees';
+import { flag, unflag } from '@/routes/trainees/development';
 import type { BreadcrumbItem } from '@/types';
 import type {
+    DevelopmentPickerSection,
+    DevelopmentPlanData,
     EvaluationItem as EvaluationItemType,
     ProgressSection,
     TraineeDetail,
@@ -102,16 +112,36 @@ function sectionOfStep(
     return sections[0]?.id ?? null;
 }
 
+type TraineeView = 'checklist' | 'development';
+
 export default function TraineeShow() {
-    const { trainee, progress, canAssignManagers, availableManagers } =
-        usePage<{
-            trainee: TraineeDetail;
-            progress: TraineeProgressData;
-            canAssignManagers: boolean;
-            availableManagers: { id: number; name: string }[];
-        }>().props;
+    const {
+        trainee,
+        progress,
+        developmentPlan,
+        developmentPicker,
+        canAssignManagers,
+        availableManagers,
+    } = usePage<{
+        trainee: TraineeDetail;
+        progress: TraineeProgressData;
+        developmentPlan: DevelopmentPlanData;
+        developmentPicker: DevelopmentPickerSection[];
+        canAssignManagers: boolean;
+        availableManagers: { id: number; name: string }[];
+    }>().props;
 
     const { stats } = progress;
+    const isArchived = trainee.archived_at !== null;
+
+    // The Dashboard's Development Zone links straight into that tab.
+    const [view, setView] = useState<TraineeView>(() =>
+        trainee.needs_development &&
+        new URLSearchParams(window.location.search).get('view') ===
+            'development'
+            ? 'development'
+            : 'checklist',
+    );
 
     // Single-open accordions; the current step's section + category open first.
     const [openSectionId, setOpenSectionId] = useState<number | null>(() =>
@@ -132,6 +162,52 @@ export default function TraineeShow() {
                 >
                     <ArrowLeft className="size-4" /> Trainees
                 </Link>
+
+                {isArchived && (
+                    <Alert>
+                        <ArchiveIcon />
+                        <AlertTitle>
+                            Archived on{' '}
+                            {new Date(
+                                trainee.archived_at as string,
+                            ).toLocaleDateString(undefined, {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                            })}
+                            {trainee.archived_by
+                                ? ` by ${trainee.archived_by.name}`
+                                : ''}
+                        </AlertTitle>
+                        <AlertDescription>
+                            <p>
+                                This trainee is read-only. Restore them to
+                                active to resume scoring.
+                            </p>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="mt-1"
+                                onClick={() =>
+                                    router.patch(
+                                        restore(trainee.id).url,
+                                        {},
+                                        {
+                                            // The Trainees list and Dashboard are
+                                            // reached via prefetching nav links —
+                                            // without this they'd keep serving
+                                            // their cached (now-stale) counts.
+                                            onSuccess: () => router.flushAll(),
+                                        },
+                                    )
+                                }
+                            >
+                                <ArchiveRestore className="size-4" /> Restore to
+                                active
+                            </Button>
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 <Card className="gap-4 p-5">
                     <div className="flex flex-wrap items-start justify-between gap-4">
@@ -171,6 +247,50 @@ export default function TraineeShow() {
                                         </Button>
                                     }
                                 />
+                            )}
+                            {!isArchived && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                        router.patch(
+                                            (trainee.needs_development
+                                                ? unflag(trainee.id)
+                                                : flag(trainee.id)
+                                            ).url,
+                                            {},
+                                            {
+                                                preserveScroll: true,
+                                                onSuccess: () =>
+                                                    router.flushAll(),
+                                            },
+                                        )
+                                    }
+                                >
+                                    <Sparkles className="size-4" />{' '}
+                                    {trainee.needs_development
+                                        ? 'Unflag development'
+                                        : 'Flag for development'}
+                                </Button>
+                            )}
+                            {!isArchived && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                        router.patch(
+                                            archive(trainee.id).url,
+                                            {},
+                                            {
+                                                onSuccess: () =>
+                                                    router.flushAll(),
+                                            },
+                                        )
+                                    }
+                                >
+                                    <ArchiveIcon className="size-4" /> Mark
+                                    complete &amp; archive
+                                </Button>
                             )}
                             <Button variant="outline" size="sm" asChild>
                                 <Link href={edit(trainee.id).url}>
@@ -224,75 +344,117 @@ export default function TraineeShow() {
                     </div>
                 </Card>
 
-                {progress.sections.map((section) => {
-                    const count = leafCount(
-                        section.categories.flatMap((c) => c.items),
-                    );
+                {trainee.needs_development && (
+                    <ToggleGroup
+                        type="single"
+                        variant="outline"
+                        value={view}
+                        onValueChange={(next) =>
+                            next && setView(next as TraineeView)
+                        }
+                        className="w-full justify-start overflow-x-auto sm:w-auto"
+                    >
+                        <ToggleGroupItem value="checklist">
+                            Checklist
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="development">
+                            Development plan
+                        </ToggleGroupItem>
+                    </ToggleGroup>
+                )}
 
-                    return (
-                        <Card key={section.id} className="gap-0 py-0">
-                            <Collapsible
-                                open={openSectionId === section.id}
-                                onOpenChange={(isOpen) =>
-                                    setOpenSectionId(isOpen ? section.id : null)
-                                }
-                            >
-                                <CollapsibleTrigger className="group flex w-full items-center gap-3 p-4 text-left">
-                                    <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=closed]:-rotate-90" />
-                                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                                        <span className="truncate font-semibold">
-                                            {section.title}
-                                        </span>
-                                        {section.hands_on_shifts && (
-                                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                <Clock className="size-3 shrink-0" />
-                                                Hands-on:{' '}
-                                                {section.hands_on_shifts}
+                {view === 'development' && trainee.needs_development && (
+                    <DevelopmentPlanPanel
+                        traineeId={trainee.id}
+                        plan={developmentPlan}
+                        picker={developmentPicker}
+                        readOnly={isArchived}
+                    />
+                )}
+
+                {view === 'checklist' &&
+                    progress.sections.map((section) => {
+                        const count = leafCount(
+                            section.categories.flatMap((c) => c.items),
+                        );
+
+                        return (
+                            <Card key={section.id} className="gap-0 py-0">
+                                <Collapsible
+                                    open={openSectionId === section.id}
+                                    onOpenChange={(isOpen) =>
+                                        setOpenSectionId(
+                                            isOpen ? section.id : null,
+                                        )
+                                    }
+                                >
+                                    <CollapsibleTrigger className="group flex w-full items-center gap-3 p-4 text-left">
+                                        <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=closed]:-rotate-90" />
+                                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                                            <span className="truncate font-semibold">
+                                                {section.title}
                                             </span>
+                                            {section.hands_on_shifts && (
+                                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                    <Clock className="size-3 shrink-0" />
+                                                    Hands-on:{' '}
+                                                    {section.hands_on_shifts}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {section.average_rating !== null && (
+                                            <RatingMeter
+                                                value={section.average_rating}
+                                                size="sm"
+                                                className="hidden shrink-0 sm:flex"
+                                            />
                                         )}
-                                    </div>
-                                    {section.average_rating !== null && (
-                                        <RatingMeter
-                                            value={section.average_rating}
-                                            size="sm"
-                                            className="hidden shrink-0 sm:flex"
-                                        />
-                                    )}
-                                    <Badge
-                                        variant={
-                                            count.done === count.total &&
-                                            count.total > 0
-                                                ? 'default'
-                                                : 'secondary'
-                                        }
-                                    >
-                                        {count.done}/{count.total}
-                                    </Badge>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent className="space-y-3 px-4 pb-4">
-                                    {section.categories.map((category) => (
-                                        <CategorySection
-                                            key={category.id}
-                                            category={category}
-                                            traineeId={trainee.id}
-                                            currentStepId={
-                                                progress.currentStepId
+                                        <Badge
+                                            variant={
+                                                count.done === count.total &&
+                                                count.total > 0
+                                                    ? 'default'
+                                                    : 'secondary'
                                             }
-                                            open={
-                                                openCategoryId === category.id
-                                            }
-                                            onOpenChange={(isOpen) =>
-                                                setOpenCategoryId(
-                                                    isOpen ? category.id : null,
-                                                )
-                                            }
-                                        />
-                                    ))}
-                                </CollapsibleContent>
-                            </Collapsible>
-                        </Card>
-                    );
-                })}
+                                        >
+                                            {count.done}/{count.total}
+                                        </Badge>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="space-y-3 px-4 pb-4">
+                                        {section.categories.map((category) => (
+                                            <CategorySection
+                                                key={category.id}
+                                                category={category}
+                                                traineeId={trainee.id}
+                                                currentStepId={
+                                                    progress.currentStepId
+                                                }
+                                                readOnly={isArchived}
+                                                open={
+                                                    openCategoryId ===
+                                                    category.id
+                                                }
+                                                onOpenChange={(isOpen) =>
+                                                    setOpenCategoryId(
+                                                        isOpen
+                                                            ? category.id
+                                                            : null,
+                                                    )
+                                                }
+                                            />
+                                        ))}
+                                        {section.quiz && (
+                                            <SectionQuizCard
+                                                traineeId={trainee.id}
+                                                quiz={section.quiz}
+                                                readOnly={isArchived}
+                                            />
+                                        )}
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            </Card>
+                        );
+                    })}
             </div>
         </>
     );

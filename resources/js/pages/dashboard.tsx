@@ -7,6 +7,7 @@ import {
     Store as StoreIcon,
     Users,
 } from 'lucide-react';
+import { DevelopmentZonePanel } from '@/components/dashboard/development-zone-panel';
 import { HeroTile } from '@/components/dashboard/hero-tile';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { CompletionBar } from '@/components/training/completion-bar';
@@ -19,6 +20,7 @@ import { index as traineesIndex, show as traineeShow } from '@/routes/trainees';
 import type { Auth, BreadcrumbItem } from '@/types';
 import type {
     DashboardStats,
+    DevelopmentZoneTrainee,
     ManagerStats,
     TraineeSummary,
 } from '@/types/training';
@@ -29,6 +31,7 @@ type DashboardProps = {
     stats?: DashboardStats;
     managerStats?: ManagerStats;
     trainees?: TraineeSummary[];
+    developmentZone: DevelopmentZoneTrainee[];
 };
 
 const GLASS_BUTTON =
@@ -57,6 +60,7 @@ export default function Dashboard() {
 
 function SuperAdminView({
     stats,
+    developmentZone,
     firstName,
 }: DashboardProps & { firstName: string }) {
     return (
@@ -95,6 +99,8 @@ function SuperAdminView({
                     icon={ListChecks}
                 />
             </div>
+
+            <DevelopmentZonePanel trainees={developmentZone} />
         </div>
     );
 }
@@ -102,6 +108,7 @@ function SuperAdminView({
 function ManagerView({
     managerStats,
     trainees = [],
+    developmentZone,
     firstName,
 }: DashboardProps & { firstName: string }) {
     return (
@@ -192,6 +199,8 @@ function ManagerView({
                     )}
                 </div>
             </section>
+
+            <DevelopmentZonePanel trainees={developmentZone} />
         </div>
     );
 }

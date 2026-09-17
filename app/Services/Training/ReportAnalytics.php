@@ -37,11 +37,12 @@ class ReportAnalytics
     /**
      * Resolve the reporting scope for a user + request filters.
      *
-     * @param  array{store?: int|null, weeks?: int|null}  $filters
+     * @param  array{store?: int|null, weeks?: int|null, includeArchived?: bool}  $filters
      */
     public function for(User $user, array $filters = []): ReportScope
     {
         $storeId = $user->resolveStoreFilter($filters['store'] ?? null);
+        $includeArchived = (bool) ($filters['includeArchived'] ?? false);
 
         $weeks = (int) ($filters['weeks'] ?? self::WEEK_OPTIONS[0]);
         if (! in_array($weeks, self::WEEK_OPTIONS, true)) {
@@ -51,11 +52,12 @@ class ReportAnalytics
         $traineeIds = Trainee::query()
             ->visibleTo($user)
             ->inStore($storeId)
+            ->when(! $includeArchived, fn ($query) => $query->active())
             ->pluck('id')
             ->map(fn ($id): int => (int) $id)
             ->all();
 
-        return new ReportScope($user, $traineeIds, $storeId, $weeks);
+        return new ReportScope($user, $traineeIds, $storeId, $weeks, $includeArchived);
     }
 
     /**
@@ -307,8 +309,11 @@ class ReportAnalytics
         $traineeCount = count($scope->traineeIds);
         $leafIds = $this->progress->leafItemIds();
 
+        // Derived from the already-published-filtered $leafIds (rather than a
+        // fresh whereDoesntHave query) so this denominator can never count a
+        // draft station's items that groupedCompleted's numerator excludes.
         $leafByCategory = ChecklistItem::query()
-            ->whereDoesntHave('children')
+            ->whereIn('id', $leafIds)
             ->selectRaw('category_id, count(*) as total')
             ->groupBy('category_id')
             ->pluck('total', 'category_id');
@@ -318,7 +323,7 @@ class ReportAnalytics
         $doneByCategory = $this->groupedCompleted($scope, 'checklist_items.category_id', $leafIds);
         $doneBySection = $this->groupedCompleted($scope, 'categories.section_id', $leafIds, joinCategories: true);
 
-        $sections = Section::query()->ordered()->with('categories:id,section_id,title,order')->get();
+        $sections = Section::query()->ordered()->published()->with('categories:id,section_id,title,order')->get();
 
         $sectionRows = [];
         $categoryRows = [];
@@ -374,8 +379,10 @@ class ReportAnalytics
         $traineeCount = count($scope->traineeIds);
         $leafIds = $this->progress->leafItemIds();
 
+        // See stationInsights()'s $leafByCategory for why this reuses $leafIds
+        // instead of an independent whereDoesntHave query.
         $leafByImportance = ChecklistItem::query()
-            ->whereDoesntHave('children')
+            ->whereIn('id', $leafIds)
             ->selectRaw('importance, count(*) as total')
             ->groupBy('importance')
             ->pluck('total', 'importance');

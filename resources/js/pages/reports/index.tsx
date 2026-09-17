@@ -7,6 +7,8 @@ import { OverviewPanel } from '@/components/reports/overview-panel';
 import { StoresPanel } from '@/components/reports/stores-panel';
 import { TraineesPanel } from '@/components/reports/trainees-panel';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -93,13 +95,22 @@ export default function ReportsIndex() {
             params.set('weeks', String(filters.weeks));
         }
 
+        if (filters.includeArchived) {
+            params.set('includeArchived', '1');
+        }
+
         return `${exportMethod().url}?${params.toString()}`;
     }
 
-    function applyFilters(next: { store?: string; weeks?: string }) {
+    function applyFilters(next: {
+        store?: string;
+        weeks?: string;
+        includeArchived?: boolean;
+    }) {
         const store =
             next.store ?? (filters.store ? String(filters.store) : 'all');
         const weeks = next.weeks ?? String(filters.weeks);
+        const includeArchived = next.includeArchived ?? filters.includeArchived;
 
         if (next.store !== undefined) {
             setSelectedStoreId(store === 'all' ? null : Number(store));
@@ -113,6 +124,10 @@ export default function ReportsIndex() {
 
         if (weeks !== String(weekOptions[0])) {
             params.weeks = weeks;
+        }
+
+        if (includeArchived) {
+            params.includeArchived = '1';
         }
 
         router.get(index().url, params, {
@@ -180,6 +195,17 @@ export default function ReportsIndex() {
                                 ))}
                             </SelectContent>
                         </Select>
+                        <Label className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
+                            <Checkbox
+                                checked={filters.includeArchived}
+                                onCheckedChange={(checked) =>
+                                    applyFilters({
+                                        includeArchived: checked === true,
+                                    })
+                                }
+                            />
+                            Include archived
+                        </Label>
                         <Button variant="outline" size="icon" asChild>
                             <a
                                 href={exportHref('csv')}

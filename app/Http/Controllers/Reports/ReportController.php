@@ -29,6 +29,7 @@ class ReportController extends Controller
         $scope = $this->analytics->for($user, [
             'store' => $request->integer('store') ?: null,
             'weeks' => $request->integer('weeks') ?: null,
+            'includeArchived' => $request->boolean('includeArchived'),
         ]);
 
         return Inertia::render('reports/index', [
@@ -38,7 +39,7 @@ class ReportController extends Controller
                 ? ($user->isSuperAdmin() ? Store::orderBy('name')->get(['id', 'name']) : $user->stores()->orderBy('stores.name')->get(['stores.id', 'stores.name']))
                 : [],
             'weekOptions' => ReportAnalytics::WEEK_OPTIONS,
-            'filters' => ['store' => $scope->storeId, 'weeks' => $scope->weeks],
+            'filters' => ['store' => $scope->storeId, 'weeks' => $scope->weeks, 'includeArchived' => $scope->includeArchived],
             'overview' => $this->analytics->overview($scope),
             'trend' => Inertia::defer(fn () => $this->analytics->completionTrend($scope), 'reports'),
             'distribution' => Inertia::defer(fn () => $this->analytics->scoreDistribution($scope), 'reports'),
@@ -61,11 +62,13 @@ class ReportController extends Controller
             'report' => ['nullable', Rule::in(['trainees', 'stores', 'managers', 'stations'])],
             'store' => ['nullable', 'integer', 'exists:stores,id'],
             'weeks' => ['nullable', 'integer'],
+            'includeArchived' => ['nullable', 'boolean'],
         ]);
 
         $scope = $this->analytics->for($request->user(), [
             'store' => $request->integer('store') ?: null,
             'weeks' => $request->integer('weeks') ?: null,
+            'includeArchived' => $request->boolean('includeArchived'),
         ]);
 
         if ($request->string('format')->toString() === 'pdf') {
