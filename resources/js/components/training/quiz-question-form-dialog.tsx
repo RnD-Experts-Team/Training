@@ -1,4 +1,5 @@
 import { useForm } from '@inertiajs/react';
+import { CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import InputError from '@/components/input-error';
@@ -14,8 +15,11 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import { store, update } from '@/routes/training/quiz-questions';
 import type { QuizQuestion } from '@/types/training';
+
+const OPTION_LETTERS = ['A', 'B', 'C', 'D'];
 
 export function QuizQuestionFormDialog({
     quizId,
@@ -77,7 +81,8 @@ export function QuizQuestionFormDialog({
                         {question ? 'Edit question' : 'New question'}
                     </DialogTitle>
                     <DialogDescription>
-                        Multiple choice — select which answer is correct.
+                        Multiple choice — tap a letter to mark the correct
+                        answer.
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={submit} className="space-y-4">
@@ -97,31 +102,50 @@ export function QuizQuestionFormDialog({
 
                     <div className="grid gap-2">
                         <Label>Answers</Label>
-                        {form.data.options.map((text, index) => (
-                            <div
-                                key={index}
-                                className="flex items-center gap-2"
-                            >
-                                <input
-                                    type="radio"
-                                    name="correct_index"
-                                    checked={form.data.correct_index === index}
-                                    onChange={() =>
-                                        form.setData('correct_index', index)
-                                    }
-                                    aria-label={`Mark option ${index + 1} as correct`}
-                                    className="size-4 shrink-0 accent-primary"
-                                />
-                                <Input
-                                    value={text}
-                                    onChange={(e) =>
-                                        setOptionText(index, e.target.value)
-                                    }
-                                    placeholder={`Option ${index + 1}`}
-                                    required
-                                />
-                            </div>
-                        ))}
+                        {form.data.options.map((text, index) => {
+                            const isCorrect = form.data.correct_index === index;
+
+                            return (
+                                <div
+                                    key={index}
+                                    className={cn(
+                                        'flex items-center gap-2 rounded-lg border p-1 pl-1.5 transition-colors',
+                                        isCorrect
+                                            ? 'border-emerald-500/50 bg-emerald-500/5'
+                                            : 'border-border',
+                                    )}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            form.setData('correct_index', index)
+                                        }
+                                        aria-pressed={isCorrect}
+                                        aria-label={`Mark option ${OPTION_LETTERS[index]} as correct`}
+                                        className={cn(
+                                            'flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors',
+                                            isCorrect
+                                                ? 'bg-emerald-500 text-white'
+                                                : 'bg-muted text-muted-foreground hover:bg-accent',
+                                        )}
+                                    >
+                                        {OPTION_LETTERS[index]}
+                                    </button>
+                                    <Input
+                                        value={text}
+                                        onChange={(e) =>
+                                            setOptionText(index, e.target.value)
+                                        }
+                                        placeholder={`Option ${OPTION_LETTERS[index]}`}
+                                        required
+                                        className="h-8 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
+                                    />
+                                    {isCorrect && (
+                                        <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
+                                    )}
+                                </div>
+                            );
+                        })}
                         <InputError message={form.errors.options} />
                         <InputError message={form.errors.correct_index} />
                     </div>

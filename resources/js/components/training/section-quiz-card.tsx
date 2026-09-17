@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
-import { CheckCircle2, Copy, FileQuestion, Send } from 'lucide-react';
+import { Check, CheckCircle2, Copy, FileQuestion, Send } from 'lucide-react';
 import { useState } from 'react';
+import { QuizStatusBadge } from '@/components/training/quiz-status-badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -48,52 +49,69 @@ export function SectionQuizCard({
         const canSend = quiz.questions_count >= MIN_QUESTIONS_TO_SEND;
 
         return (
-            <Card className="flex flex-wrap items-center justify-between gap-3 p-3">
-                <div className="flex items-center gap-2 text-sm">
-                    <FileQuestion className="size-4 text-muted-foreground" />
-                    <span className="font-medium">Quiz</span>
-                    <span className="text-muted-foreground">Not sent</span>
+            <Card className="flex flex-wrap items-center justify-between gap-3 p-3.5">
+                <div className="flex items-center gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                        <FileQuestion className="size-4" strokeWidth={1.75} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium">Quiz</p>
+                        <p className="text-xs text-muted-foreground">
+                            {canSend
+                                ? 'Not sent yet'
+                                : `Needs at least ${MIN_QUESTIONS_TO_SEND} questions to send`}
+                        </p>
+                    </div>
                 </div>
-                {!readOnly &&
-                    (canSend ? (
-                        <Button size="sm" variant="outline" onClick={send}>
-                            <Send className="size-4" /> Send quiz
-                        </Button>
-                    ) : (
-                        <span className="text-xs text-muted-foreground">
-                            Needs at least {MIN_QUESTIONS_TO_SEND} questions
-                        </span>
-                    ))}
+                {!readOnly && canSend && (
+                    <Button size="sm" onClick={send}>
+                        <Send className="size-4" /> Send quiz
+                    </Button>
+                )}
             </Card>
         );
     }
 
     if (quiz.attempt.status === 'completed') {
         return (
-            <Card className="flex items-center gap-2 p-3 text-sm">
-                <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
-                <span className="font-medium">Quiz</span>
-                <span className="text-muted-foreground">
-                    Completed — results go to the training team
-                </span>
+            <Card className="flex flex-wrap items-center justify-between gap-3 p-3.5">
+                <div className="flex items-center gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="size-4" strokeWidth={1.75} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium">Quiz</p>
+                        <p className="text-xs text-muted-foreground">
+                            Results go to the training team
+                        </p>
+                    </div>
+                </div>
+                <QuizStatusBadge status="completed" />
             </Card>
         );
     }
 
     return (
-        <Card className="flex flex-col gap-2 p-3">
-            <div className="flex items-center gap-2 text-sm">
-                <FileQuestion className="size-4 shrink-0 text-muted-foreground" />
-                <span className="font-medium">Quiz</span>
-                <span className="text-muted-foreground">
-                    Sent — share this link with the employee
-                </span>
+        <Card className="flex flex-col gap-3 p-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                        <Send className="size-4" strokeWidth={1.75} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium">Quiz</p>
+                        <p className="text-xs text-muted-foreground">
+                            Waiting on the employee to finish
+                        </p>
+                    </div>
+                </div>
+                <QuizStatusBadge status="sent" />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 sm:pl-12">
                 <Input
                     readOnly
                     value={quiz.attempt.link ?? ''}
-                    className="text-xs"
+                    className="font-mono text-xs"
                     onFocus={(event) => event.currentTarget.select()}
                 />
                 <Button
@@ -105,7 +123,15 @@ export function SectionQuizCard({
                         quiz.attempt?.link && copyLink(quiz.attempt.link)
                     }
                 >
-                    <Copy className="size-4" /> {copied ? 'Copied' : 'Copy'}
+                    {copied ? (
+                        <>
+                            <Check className="size-4" /> Copied
+                        </>
+                    ) : (
+                        <>
+                            <Copy className="size-4" /> Copy
+                        </>
+                    )}
                 </Button>
             </div>
         </Card>

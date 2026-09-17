@@ -1,7 +1,8 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { FileQuestion } from 'lucide-react';
+import { CheckCircle2, FileQuestion, Percent, Send } from 'lucide-react';
+import { StatCard } from '@/components/dashboard/stat-card';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { QuizStatusBadge } from '@/components/training/quiz-status-badge';
 import { Card } from '@/components/ui/card';
 import {
     Table,
@@ -11,12 +12,25 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 import { index, show } from '@/routes/training/quiz-results';
 import type { BreadcrumbItem } from '@/types';
 import type { QuizAttemptRow } from '@/types/training';
 
 export default function QuizResultsIndex() {
     const { attempts } = usePage<{ attempts: QuizAttemptRow[] }>().props;
+
+    const completedAttempts = attempts.filter(
+        (attempt) => attempt.status === 'completed' && attempt.score !== null,
+    );
+    const averageScore = completedAttempts.length
+        ? Math.round(
+              completedAttempts.reduce(
+                  (sum, attempt) => sum + (attempt.score ?? 0),
+                  0,
+              ) / completedAttempts.length,
+          )
+        : null;
 
     return (
         <>
@@ -36,80 +50,126 @@ export default function QuizResultsIndex() {
                         </p>
                     </Card>
                 ) : (
-                    <section className="surface-tray">
-                        <div className="surface-core overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Trainee</TableHead>
-                                        <TableHead>Quiz</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">
-                                            Score
-                                        </TableHead>
-                                        <TableHead className="text-right">
-                                            Sent
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {attempts.map((attempt) => (
-                                        <TableRow key={attempt.id}>
-                                            <TableCell>
-                                                <p className="font-medium">
-                                                    {attempt.trainee.name}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {attempt.store.name}
-                                                </p>
-                                            </TableCell>
-                                            <TableCell>
-                                                {attempt.section.title}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={
-                                                        attempt.status ===
-                                                        'completed'
-                                                            ? 'default'
-                                                            : 'secondary'
-                                                    }
-                                                >
-                                                    {attempt.status ===
-                                                    'completed'
-                                                        ? 'Completed'
-                                                        : 'Sent'}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right tabular-nums">
-                                                {attempt.status ===
-                                                    'completed' &&
-                                                attempt.score !== null ? (
-                                                    <Link
-                                                        href={
-                                                            show(attempt.id).url
-                                                        }
-                                                        className="font-medium text-primary hover:underline"
-                                                    >
-                                                        {attempt.score}%
-                                                    </Link>
-                                                ) : (
-                                                    <span className="text-muted-foreground">
-                                                        —
-                                                    </span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right text-sm text-muted-foreground">
-                                                {new Date(
-                                                    attempt.sent_at,
-                                                ).toLocaleDateString()}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                    <>
+                        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+                            <StatCard
+                                label="Total attempts"
+                                value={attempts.length}
+                                icon={FileQuestion}
+                            />
+                            <StatCard
+                                label="Awaiting completion"
+                                value={
+                                    attempts.length - completedAttempts.length
+                                }
+                                icon={Send}
+                            />
+                            <StatCard
+                                label="Average score"
+                                value={
+                                    averageScore !== null
+                                        ? `${averageScore}%`
+                                        : '—'
+                                }
+                                icon={Percent}
+                            />
                         </div>
-                    </section>
+
+                        <section className="surface-tray">
+                            <div className="surface-core overflow-hidden">
+                                <header className="flex items-center justify-between gap-3 border-b border-border/60 p-4">
+                                    <div className="flex items-center gap-2">
+                                        <CheckCircle2 className="size-4 text-muted-foreground" />
+                                        <h2 className="font-semibold tracking-tight">
+                                            All results
+                                        </h2>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground">
+                                        {attempts.length}{' '}
+                                        {attempts.length === 1
+                                            ? 'attempt'
+                                            : 'attempts'}
+                                    </span>
+                                </header>
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Trainee</TableHead>
+                                                <TableHead>Quiz</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead className="text-right">
+                                                    Score
+                                                </TableHead>
+                                                <TableHead className="text-right">
+                                                    Sent
+                                                </TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {attempts.map((attempt) => (
+                                                <TableRow key={attempt.id}>
+                                                    <TableCell>
+                                                        <p className="font-medium">
+                                                            {
+                                                                attempt.trainee
+                                                                    .name
+                                                            }
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {attempt.store.name}
+                                                        </p>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {attempt.section.title}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <QuizStatusBadge
+                                                            status={
+                                                                attempt.status
+                                                            }
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="text-right tabular-nums">
+                                                        {attempt.status ===
+                                                            'completed' &&
+                                                        attempt.score !==
+                                                            null ? (
+                                                            <Link
+                                                                href={
+                                                                    show(
+                                                                        attempt.id,
+                                                                    ).url
+                                                                }
+                                                                className={cn(
+                                                                    'font-semibold hover:underline',
+                                                                    attempt.score >=
+                                                                        70
+                                                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                                                        : 'text-primary',
+                                                                )}
+                                                            >
+                                                                {attempt.score}%
+                                                            </Link>
+                                                        ) : (
+                                                            <span className="text-muted-foreground">
+                                                                —
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-right text-sm text-muted-foreground">
+                                                        {new Date(
+                                                            attempt.sent_at,
+                                                        ).toLocaleDateString()}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </div>
+                        </section>
+                    </>
                 )}
             </div>
         </>
