@@ -6,8 +6,8 @@ import {
     ChevronDown,
     Clock,
     Pencil,
-    Sparkles,
     Trash2,
+    TrendingUp,
     Users,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -28,7 +28,14 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { archive, destroy, edit, index, restore } from '@/routes/trainees';
+import {
+    archive,
+    destroy,
+    edit,
+    index,
+    restore,
+    show,
+} from '@/routes/trainees';
 import { flag, unflag } from '@/routes/trainees/development';
 import type { BreadcrumbItem } from '@/types';
 import type {
@@ -267,7 +274,7 @@ export default function TraineeShow() {
                                         )
                                     }
                                 >
-                                    <Sparkles className="size-4" />{' '}
+                                    <TrendingUp className="size-4" />{' '}
                                     {trainee.needs_development
                                         ? 'Unflag development'
                                         : 'Flag for development'}
@@ -460,6 +467,9 @@ export default function TraineeShow() {
     );
 }
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Trainees', href: index() }];
-
-TraineeShow.layout = { breadcrumbs };
+TraineeShow.layout = (page: { trainee: TraineeDetail }) => ({
+    breadcrumbs: [
+        { title: 'Trainees', href: index() },
+        { title: page.trainee.name, href: show(page.trainee.id) },
+    ] satisfies BreadcrumbItem[],
+});

@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useSortable } from '@/hooks/use-sortable';
 import { reorder } from '@/routes/training/categories';
-import { index, publish, unpublish } from '@/routes/training/sections';
+import { edit, index, publish, unpublish } from '@/routes/training/sections';
 import type { BreadcrumbItem } from '@/types';
 import type { MoveTarget, Section } from '@/types/training';
 
@@ -200,8 +200,9 @@ export default function BuilderSection() {
     );
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Content builder', href: index() },
-];
-
-BuilderSection.layout = { breadcrumbs };
+BuilderSection.layout = (page: { section: Section }) => ({
+    breadcrumbs: [
+        { title: 'Content builder', href: index() },
+        { title: page.section.title, href: edit(page.section.id) },
+    ] satisfies BreadcrumbItem[],
+});

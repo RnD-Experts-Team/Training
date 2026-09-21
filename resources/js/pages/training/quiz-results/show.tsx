@@ -5,7 +5,7 @@ import { ConfirmDeleteDialog } from '@/components/training/confirm-delete-dialog
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { destroy, index } from '@/routes/training/quiz-results';
+import { destroy, index, show } from '@/routes/training/quiz-results';
 import type { BreadcrumbItem } from '@/types';
 import type { QuizResultDetail, QuizResultQuestion } from '@/types/training';
 
@@ -158,8 +158,12 @@ export default function QuizResultShow() {
     );
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Quiz Results', href: index() },
-];
-
-QuizResultShow.layout = { breadcrumbs };
+QuizResultShow.layout = (page: { attempt: QuizResultDetail }) => ({
+    breadcrumbs: [
+        { title: 'Quiz Results', href: index() },
+        {
+            title: `${page.attempt.trainee.name} — ${page.attempt.section.title}`,
+            href: show(page.attempt.id),
+        },
+    ] satisfies BreadcrumbItem[],
+});
