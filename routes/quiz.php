@@ -10,3 +10,4 @@ use Illuminate\Support\Facades\Route;
  */
 Route::get('quiz/{token}', [PublicQuizController::class, 'show'])->name('quiz.show');
 Route::post('quiz/{token}', [PublicQuizController::class, 'store'])->name('quiz.store');
+Route::post('quiz/{token}/report-mismatch', [PublicQuizController::class, 'reportMismatch'])->name('quiz.report-mismatch');

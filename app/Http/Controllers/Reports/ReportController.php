@@ -32,7 +32,7 @@ class ReportController extends Controller
             'includeArchived' => $request->boolean('includeArchived'),
         ]);
 
-        return Inertia::render('reports/index', [
+        $props = [
             'isSuperAdmin' => $user->isSuperAdmin(),
             'canChooseStore' => $user->canFilterByStore(),
             'storeOptions' => $user->canFilterByStore()
@@ -43,12 +43,22 @@ class ReportController extends Controller
             'overview' => $this->analytics->overview($scope),
             'trend' => Inertia::defer(fn () => $this->analytics->completionTrend($scope), 'reports'),
             'distribution' => Inertia::defer(fn () => $this->analytics->scoreDistribution($scope), 'reports'),
+            'developmentZone' => Inertia::defer(fn () => $this->analytics->developmentZone($scope), 'reports'),
             'storePerformance' => Inertia::defer(fn () => $this->analytics->storePerformance($scope), 'reports'),
             'managerActivity' => Inertia::defer(fn () => $this->analytics->managerActivity($scope), 'reports'),
             'traineeStatus' => Inertia::defer(fn () => $this->analytics->traineeStatus($scope), 'reports'),
             'stationInsights' => Inertia::defer(fn () => $this->analytics->stationInsights($scope), 'reports'),
             'importanceBreakdown' => Inertia::defer(fn () => $this->analytics->importanceBreakdown($scope), 'reports'),
-        ]);
+        ];
+
+        // Quiz results are training-team-only everywhere else in the app
+        // (see routes/training.php's quiz-results group) — keep that rule
+        // here too, rather than exposing manager-visible quiz data.
+        if ($user->isSuperAdmin()) {
+            $props['quizSummary'] = Inertia::defer(fn () => $this->analytics->quizSummary($scope), 'reports');
+        }
+
+        return Inertia::render('reports/index', $props);
     }
 
     /**

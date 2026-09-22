@@ -1,8 +1,15 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { CheckCircle2, FileQuestion, Percent, Send } from 'lucide-react';
+import {
+    CheckCircle2,
+    FileQuestion,
+    Percent,
+    Send,
+    ShieldAlert,
+} from 'lucide-react';
 import { StatCard } from '@/components/dashboard/stat-card';
 import Heading from '@/components/heading';
 import { QuizStatusBadge } from '@/components/training/quiz-status-badge';
+import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import {
     Table,
@@ -31,6 +38,7 @@ export default function QuizResultsIndex() {
               ) / completedAttempts.length,
           )
         : null;
+    const flaggedAttempts = attempts.filter((attempt) => attempt.flagged);
 
     return (
         <>
@@ -51,7 +59,7 @@ export default function QuizResultsIndex() {
                     </Card>
                 ) : (
                     <>
-                        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+                        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                             <StatCard
                                 label="Total attempts"
                                 value={attempts.length}
@@ -72,6 +80,16 @@ export default function QuizResultsIndex() {
                                         : '—'
                                 }
                                 icon={Percent}
+                            />
+                            <StatCard
+                                label="Flagged: wrong person"
+                                value={flaggedAttempts.length}
+                                icon={ShieldAlert}
+                                hint={
+                                    flaggedAttempts.length > 0
+                                        ? 'Reported by the person who opened the link'
+                                        : undefined
+                                }
                             />
                         </div>
 
@@ -124,11 +142,22 @@ export default function QuizResultsIndex() {
                                                         {attempt.section.title}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <QuizStatusBadge
-                                                            status={
-                                                                attempt.status
-                                                            }
-                                                        />
+                                                        <div className="flex flex-wrap items-center gap-1.5">
+                                                            <QuizStatusBadge
+                                                                status={
+                                                                    attempt.status
+                                                                }
+                                                            />
+                                                            {attempt.flagged && (
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className="gap-1 text-amber-600 dark:text-amber-400"
+                                                                >
+                                                                    <ShieldAlert className="size-3" />
+                                                                    Wrong person
+                                                                </Badge>
+                                                            )}
+                                                        </div>
                                                     </TableCell>
                                                     <TableCell className="text-right tabular-nums">
                                                         {attempt.status ===

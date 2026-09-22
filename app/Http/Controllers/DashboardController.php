@@ -83,15 +83,15 @@ class DashboardController extends Controller
     }
 
     /**
-     * Trainees flagged for extra coaching support, with completion within
+     * Trainees currently in the Development Zone, with completion within
      * their own curated plan — the Dashboard's Development Zone panel.
      *
      * @param  Builder<Trainee>  $scope  Already scoped to who/where this viewer may see.
-     * @return Collection<int, array{id: int, name: string, position: string|null, store: array{id: int, name: string}, stats: array{completed: int, total: int}}>
+     * @return Collection<int, array{id: int, name: string, position: string|null, store: array{id: int, name: string}, status: string, stats: array{completed: int, total: int}}>
      */
     private function developmentZone(Builder $scope, TraineeProgress $progress): Collection
     {
-        $trainees = $scope->needsDevelopment()->with('store:id,name')->orderBy('name')->get();
+        $trainees = $scope->inDevelopmentZone()->with('store:id,name')->orderBy('name')->get();
         $stats = $progress->developmentStats($trainees->pluck('id'));
 
         return $trainees->map(fn (Trainee $trainee): array => [
@@ -99,6 +99,7 @@ class DashboardController extends Controller
             'name' => $trainee->name,
             'position' => $trainee->position,
             'store' => $trainee->store->only(['id', 'name']),
+            'status' => $trainee->development_status->value,
             'stats' => $stats[$trainee->id] ?? ['completed' => 0, 'total' => 0],
         ])->values();
     }

@@ -76,15 +76,17 @@ Route::middleware(['auth', 'verified', 'super_admin'])
  */
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('development-zone', [TraineeDevelopmentController::class, 'index'])->name('development-zone.index');
+    Route::get('development-zone/{trainee}', [TraineeDevelopmentController::class, 'show'])->name('development-zone.show');
 
     Route::resource('trainees', TraineeController::class);
 
     Route::patch('trainees/{trainee}/archive', [TraineeController::class, 'archive'])->name('trainees.archive');
     Route::patch('trainees/{trainee}/restore', [TraineeController::class, 'restore'])->name('trainees.restore');
 
-    Route::patch('trainees/{trainee}/development-flag', [TraineeDevelopmentController::class, 'flag'])->name('trainees.development.flag');
-    Route::patch('trainees/{trainee}/development-unflag', [TraineeDevelopmentController::class, 'unflag'])->name('trainees.development.unflag');
+    Route::post('trainees/{trainee}/development-zone', [TraineeDevelopmentController::class, 'store'])->name('trainees.development.store');
+    Route::delete('trainees/{trainee}/development-zone', [TraineeDevelopmentController::class, 'destroy'])->name('trainees.development.destroy');
     Route::put('trainees/{trainee}/development-plan', [TraineeDevelopmentController::class, 'updatePlan'])->name('trainees.development.update');
+    Route::patch('trainees/{trainee}/development-complete', [TraineeDevelopmentController::class, 'complete'])->name('trainees.development.complete');
 
     Route::post('trainees/{trainee}/quiz-attempts', [QuizAttemptController::class, 'store'])->name('trainees.quiz-attempts.store');
 

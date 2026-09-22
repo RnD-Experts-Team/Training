@@ -31,9 +31,12 @@ class QuizQuestionController extends Controller
     public function update(QuizQuestionRequest $request, QuizQuestion $question): RedirectResponse
     {
         DB::transaction(function () use ($request, $question): void {
-            $question->update(['prompt' => $request->validated('prompt')]);
+            $question->update([
+                'prompt' => $request->validated('prompt'),
+                'type' => $request->validated('type'),
+            ]);
             $question->options()->delete();
-            $this->createOptions($question, $request->validated('options'), (int) $request->validated('correct_index'));
+            $this->createOptions($question, $request->validated('options'), $request->correctIndexes());
         });
 
         return back();
@@ -52,22 +55,24 @@ class QuizQuestionController extends Controller
             $question = QuizQuestion::create([
                 'quiz_id' => $quizId,
                 'prompt' => $request->validated('prompt'),
+                'type' => $request->validated('type'),
                 'order' => $order,
             ]);
 
-            $this->createOptions($question, $request->validated('options'), (int) $request->validated('correct_index'));
+            $this->createOptions($question, $request->validated('options'), $request->correctIndexes());
         });
     }
 
     /**
      * @param  array<int, string>  $options
+     * @param  array<int, int>  $correctIndexes
      */
-    private function createOptions(QuizQuestion $question, array $options, int $correctIndex): void
+    private function createOptions(QuizQuestion $question, array $options, array $correctIndexes): void
     {
         foreach (array_values($options) as $index => $text) {
             $question->options()->create([
                 'text' => $text,
-                'is_correct' => $index === $correctIndex,
+                'is_correct' => in_array($index, $correctIndexes, true),
                 'order' => $index,
             ]);
         }

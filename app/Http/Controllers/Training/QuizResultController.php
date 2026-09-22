@@ -30,6 +30,7 @@ class QuizResultController extends Controller
                 'store' => $attempt->trainee->store->only(['id', 'name']),
                 'section' => $attempt->quiz->section->only(['id', 'title']),
                 'status' => $attempt->isCompleted() ? 'completed' : 'sent',
+                'flagged' => $attempt->isFlaggedAsMisdirected(),
                 'score' => $attempt->score,
                 'sent_at' => $attempt->sent_at->toIso8601String(),
                 'completed_at' => $attempt->completed_at?->toIso8601String(),
@@ -50,7 +51,7 @@ class QuizResultController extends Controller
             'answers',
         ]);
 
-        $answersByQuestion = $attempt->answers->keyBy('quiz_question_id');
+        $answersByQuestion = $attempt->answers->groupBy('quiz_question_id');
 
         return Inertia::render('training/quiz-results/show', [
             'attempt' => [
@@ -63,16 +64,17 @@ class QuizResultController extends Controller
                 'completed_at' => $attempt->completed_at?->toIso8601String(),
             ],
             'questions' => $attempt->quiz->questions->map(function ($question) use ($answersByQuestion): array {
-                $chosenOptionId = $answersByQuestion->get($question->id)?->quiz_question_option_id;
+                $chosenOptionIds = $answersByQuestion->get($question->id, collect())->pluck('quiz_question_option_id');
 
                 return [
                     'id' => $question->id,
                     'prompt' => $question->prompt,
+                    'type' => $question->type->value,
                     'options' => $question->options->map(fn ($option): array => [
                         'id' => $option->id,
                         'text' => $option->text,
                         'is_correct' => $option->is_correct,
-                        'is_chosen' => $option->id === $chosenOptionId,
+                        'is_chosen' => $chosenOptionIds->contains($option->id),
                     ])->values(),
                 ];
             })->values(),

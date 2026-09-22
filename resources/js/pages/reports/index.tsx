@@ -21,9 +21,11 @@ import { useStoreFilter, useSyncStoreFilter } from '@/hooks/use-store-filter';
 import { exportMethod, index } from '@/routes/reports';
 import type { BreadcrumbItem } from '@/types';
 import type {
+    DevelopmentZoneSummary,
     DistributionBand,
     ImportanceRow,
     ManagerActivityRow,
+    QuizResultsSummary,
     ReportArea,
     ReportFilters,
     ReportOverview,
@@ -43,11 +45,13 @@ type ReportPageProps = {
     overview: ReportOverview;
     trend?: TrendPoint[];
     distribution?: DistributionBand[];
+    developmentZone?: DevelopmentZoneSummary;
     storePerformance?: StorePerformanceRow[];
     managerActivity?: ManagerActivityRow[];
     traineeStatus?: TraineeStatusReport;
     stationInsights?: StationInsights;
     importanceBreakdown?: ImportanceRow[];
+    quizSummary?: QuizResultsSummary;
 };
 
 const AREAS: { value: ReportArea; label: string }[] = [
@@ -250,6 +254,7 @@ export default function ReportsIndex() {
                         overview={overview}
                         trend={props.trend}
                         distribution={props.distribution}
+                        developmentZone={props.developmentZone}
                     />
                 )}
                 {area === 'stores' && (
@@ -266,6 +271,7 @@ export default function ReportsIndex() {
                     <ContentPanel
                         insights={props.stationInsights}
                         importance={props.importanceBreakdown}
+                        quiz={props.quizSummary}
                     />
                 )}
             </div>

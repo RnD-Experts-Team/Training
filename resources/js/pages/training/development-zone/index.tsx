@@ -1,7 +1,11 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, UserPlus } from 'lucide-react';
 import Heading from '@/components/heading';
+import { AddToDevelopmentZoneDialog } from '@/components/training/add-to-development-zone-dialog';
 import { CompletionBar } from '@/components/training/completion-bar';
+import { DevelopmentCriteriaManager } from '@/components/training/development-criteria-manager';
+import { DevelopmentStatusBadge } from '@/components/training/development-status-badge';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
     Select,
@@ -11,14 +15,31 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useStoreFilter, useSyncStoreFilter } from '@/hooks/use-store-filter';
-import { index } from '@/routes/development-zone';
-import { show as traineeShow } from '@/routes/trainees';
+import { index, show } from '@/routes/development-zone';
 import type { BreadcrumbItem } from '@/types';
-import type { DevelopmentZoneTrainee, StoreOption } from '@/types/training';
+import type {
+    AddableTrainee,
+    DevelopmentCriterion,
+    DevelopmentZoneTrainee,
+    StoreOption,
+} from '@/types/training';
 
 export default function DevelopmentZoneIndex() {
-    const { trainees, stores, filters, canChooseStore } = usePage<{
+    const {
+        trainees,
+        addableTrainees,
+        criteria,
+        allCriteria,
+        canManageCriteria,
+        stores,
+        filters,
+        canChooseStore,
+    } = usePage<{
         trainees: DevelopmentZoneTrainee[];
+        addableTrainees: AddableTrainee[];
+        criteria: DevelopmentCriterion[];
+        allCriteria: DevelopmentCriterion[];
+        canManageCriteria: boolean;
         stores: StoreOption[];
         filters: { store: number | null };
         canChooseStore: boolean;
@@ -45,40 +66,62 @@ export default function DevelopmentZoneIndex() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <Heading
                         title="Development Zone"
-                        description="Trainees flagged for extra coaching support, and progress on their individualized plans."
+                        description="Evaluate trainees who need extra coaching, and track their progress on an individualized plan."
                     />
-                    {canChooseStore && stores.length > 0 && (
-                        <Select
-                            value={
-                                filters.store ? String(filters.store) : 'all'
-                            }
-                            onValueChange={filterStore}
-                        >
-                            <SelectTrigger className="w-40">
-                                <SelectValue placeholder="All stores" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All stores</SelectItem>
-                                {stores.map((store) => (
-                                    <SelectItem
-                                        key={store.id}
-                                        value={String(store.id)}
-                                    >
-                                        {store.name}
+                    <div className="flex flex-wrap items-center gap-2">
+                        {canChooseStore && stores.length > 0 && (
+                            <Select
+                                value={
+                                    filters.store
+                                        ? String(filters.store)
+                                        : 'all'
+                                }
+                                onValueChange={filterStore}
+                            >
+                                <SelectTrigger className="w-40">
+                                    <SelectValue placeholder="All stores" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        All stores
                                     </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
+                                    {stores.map((store) => (
+                                        <SelectItem
+                                            key={store.id}
+                                            value={String(store.id)}
+                                        >
+                                            {store.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                        {canManageCriteria && (
+                            <DevelopmentCriteriaManager
+                                criteria={allCriteria}
+                            />
+                        )}
+                        {addableTrainees.length > 0 && (
+                            <AddToDevelopmentZoneDialog
+                                trainees={addableTrainees}
+                                criteria={criteria}
+                                trigger={
+                                    <Button size="sm">
+                                        <UserPlus className="size-4" /> Add to
+                                        Development Zone
+                                    </Button>
+                                }
+                            />
+                        )}
+                    </div>
                 </div>
 
                 {trainees.length === 0 ? (
                     <Card className="flex flex-col items-center justify-center gap-3 border-dashed p-12 text-center">
                         <TrendingUp className="size-10 text-muted-foreground" />
                         <p className="text-sm text-muted-foreground">
-                            No one is flagged for development right now. Flag a
-                            trainee from their profile to build them a focused
-                            plan.
+                            No one is in the Development Zone yet. Add a trainee
+                            to build them a focused plan.
                         </p>
                     </Card>
                 ) : (
@@ -87,13 +130,18 @@ export default function DevelopmentZoneIndex() {
                             {trainees.map((trainee) => (
                                 <li key={trainee.id}>
                                     <Link
-                                        href={`${traineeShow(trainee.id).url}?view=development`}
+                                        href={show(trainee.id).url}
                                         className="flex flex-col gap-3 p-4 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:gap-4"
                                     >
                                         <div className="min-w-0 sm:flex-1">
-                                            <p className="truncate font-medium">
-                                                {trainee.name}
-                                            </p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="truncate font-medium">
+                                                    {trainee.name}
+                                                </p>
+                                                <DevelopmentStatusBadge
+                                                    status={trainee.status}
+                                                />
+                                            </div>
                                             <p className="truncate text-xs text-muted-foreground">
                                                 {[
                                                     trainee.position,

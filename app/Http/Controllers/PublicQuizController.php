@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\QuizQuestionType;
 use App\Models\QuizAnswer;
 use App\Models\QuizAttempt;
+use App\Models\QuizQuestion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,11 +29,13 @@ class PublicQuizController extends Controller
             'traineeName' => $attempt->trainee->name,
             'sectionTitle' => $attempt->quiz->section?->title,
             'completed' => $attempt->isCompleted(),
+            'flaggedAsMismatch' => $attempt->isFlaggedAsMisdirected(),
             'questions' => $attempt->isCompleted()
                 ? []
-                : $attempt->quiz->questions->map(fn ($question): array => [
+                : $attempt->quiz->questions->map(fn (QuizQuestion $question): array => [
                     'id' => $question->id,
                     'prompt' => $question->prompt,
+                    'type' => $question->type->value,
                     'options' => $question->options->map(fn ($option): array => [
                         'id' => $option->id,
                         'text' => $option->text,
@@ -40,6 +44,26 @@ class PublicQuizController extends Controller
         ]);
     }
 
+    /**
+     * The person opening this link said it isn't meant for them — flag it so
+     * the training team can tell the manager sent it to the wrong employee.
+     * Doesn't touch completion/score; the link stays valid for whoever it
+     * was actually meant for.
+     */
+    public function reportMismatch(string $token): RedirectResponse
+    {
+        $attempt = QuizAttempt::where('token', $token)->firstOrFail();
+        $attempt->update(['wrong_recipient_reported_at' => now()]);
+
+        return to_route('quiz.show', $token);
+    }
+
+    /**
+     * Every question submits as an array of chosen option ids, whether it's
+     * single- or multi-answer — single questions are just constrained to
+     * exactly one. A question is only counted correct if the chosen set is
+     * an exact match for the option(s) actually marked correct.
+     */
     public function store(Request $request, string $token): RedirectResponse
     {
         $attempt = QuizAttempt::where('token', $token)->whereNull('completed_at')->firstOrFail();
@@ -47,7 +71,12 @@ class PublicQuizController extends Controller
 
         $rules = [];
         foreach ($attempt->quiz->questions as $question) {
-            $rules["answers.{$question->id}"] = ['required', Rule::in($question->options->pluck('id'))];
+            $rules["answers.{$question->id}"] = [
+                'required',
+                'array',
+                $question->type === QuizQuestionType::Single ? 'size:1' : 'min:1',
+            ];
+            $rules["answers.{$question->id}.*"] = ['distinct', Rule::in($question->options->pluck('id'))];
         }
 
         $data = $request->validate($rules);
@@ -57,17 +86,20 @@ class PublicQuizController extends Controller
 
         DB::transaction(function () use ($attempt, $data, &$correct): void {
             foreach ($attempt->quiz->questions as $question) {
-                $option = $question->options->firstWhere('id', $data['answers'][$question->id]);
+                $chosenIds = collect($data['answers'][$question->id])->map(fn ($id): int => (int) $id)->sort()->values();
+                $correctIds = $question->options->where('is_correct', true)->pluck('id')->sort()->values();
 
-                if ($option->is_correct) {
+                if ($chosenIds->all() === $correctIds->all()) {
                     $correct++;
                 }
 
-                QuizAnswer::create([
-                    'quiz_attempt_id' => $attempt->id,
-                    'quiz_question_id' => $question->id,
-                    'quiz_question_option_id' => $option->id,
-                ]);
+                foreach ($chosenIds as $optionId) {
+                    QuizAnswer::create([
+                        'quiz_attempt_id' => $attempt->id,
+                        'quiz_question_id' => $question->id,
+                        'quiz_question_option_id' => $optionId,
+                    ]);
+                }
             }
         });
 

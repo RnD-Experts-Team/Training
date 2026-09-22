@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DevelopmentStatus;
 use Database\Factories\TraineeFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -21,13 +23,15 @@ use Illuminate\Support\Carbon;
  * @property int|null $created_by
  * @property Carbon|null $archived_at
  * @property int|null $archived_by
- * @property bool $needs_development
+ * @property DevelopmentStatus|null $development_status
  * @property-read Store $store
  * @property-read User|null $creator
  * @property-read User|null $archivedBy
  * @property-read Collection<int, User> $managers
  * @property-read Collection<int, Evaluation> $evaluations
  * @property-read Collection<int, ChecklistItem> $developmentItems
+ * @property-read Collection<int, DevelopmentEvaluation> $developmentEvaluations
+ * @property-read DevelopmentEvaluation|null $latestDevelopmentEvaluation
  * @property-read Collection<int, QuizAttempt> $quizAttempts
  */
 class Trainee extends Model
@@ -38,7 +42,7 @@ class Trainee extends Model
     /** @var list<string> */
     protected $fillable = [
         'store_id', 'name', 'position', 'hired_at', 'created_by',
-        'archived_at', 'archived_by', 'needs_development',
+        'archived_at', 'archived_by', 'development_status',
     ];
 
     /**
@@ -49,7 +53,7 @@ class Trainee extends Model
         return [
             'hired_at' => 'date',
             'archived_at' => 'datetime',
-            'needs_development' => 'boolean',
+            'development_status' => DevelopmentStatus::class,
         ];
     }
 
@@ -100,8 +104,8 @@ class Trainee extends Model
 
     /**
      * The curated subset of existing checklist items making up this
-     * trainee's individualized Development Plan (only meaningful when
-     * `needs_development` is true). Scoring these uses the same evaluation
+     * trainee's individualized Development Plan (only meaningful while
+     * `development_status` is set). Scoring these uses the same evaluation
      * records as the standard checklist — this is a focused view into it,
      * not a separate kind of progress.
      *
@@ -118,6 +122,28 @@ class Trainee extends Model
     public function quizAttempts(): HasMany
     {
         return $this->hasMany(QuizAttempt::class);
+    }
+
+    /**
+     * Every rubric evaluation submitted for this trainee's time in the
+     * Development Zone (usually one per trip through it).
+     *
+     * @return HasMany<DevelopmentEvaluation, $this>
+     */
+    public function developmentEvaluations(): HasMany
+    {
+        return $this->hasMany(DevelopmentEvaluation::class);
+    }
+
+    /**
+     * The evaluation that most recently brought this trainee into the
+     * Development Zone.
+     *
+     * @return HasOne<DevelopmentEvaluation, $this>
+     */
+    public function latestDevelopmentEvaluation(): HasOne
+    {
+        return $this->hasOne(DevelopmentEvaluation::class)->latestOfMany('submitted_at');
     }
 
     /**
@@ -184,14 +210,23 @@ class Trainee extends Model
     }
 
     /**
-     * Trainees currently flagged for extra coaching support (the Dashboard's
-     * Development Zone panel).
+     * Trainees currently in the Development Zone, regardless of status (the
+     * Dashboard's Development Zone panel and the Development Zone page).
      *
      * @param  Builder<Trainee>  $query
      * @return Builder<Trainee>
      */
-    public function scopeNeedsDevelopment(Builder $query): Builder
+    public function scopeInDevelopmentZone(Builder $query): Builder
     {
-        return $query->where('needs_development', true);
+        return $query->whereNotNull('development_status');
+    }
+
+    /**
+     * @param  Builder<Trainee>  $query
+     * @return Builder<Trainee>
+     */
+    public function scopeDevelopmentStatus(Builder $query, DevelopmentStatus $status): Builder
+    {
+        return $query->where('development_status', $status);
     }
 }

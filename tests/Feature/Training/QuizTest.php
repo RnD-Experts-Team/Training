@@ -53,12 +53,14 @@ class QuizTest extends TestCase
 
         $this->actingAs($admin)->post(route('training.quiz-questions.store', $quiz), [
             'prompt' => 'What comes first?',
+            'type' => 'single',
             'options' => ['Wash hands', 'Wear gloves', 'Preheat oven'],
             'correct_index' => 0,
         ])->assertSessionHasErrors('options');
 
         $this->actingAs($admin)->post(route('training.quiz-questions.store', $quiz), [
             'prompt' => 'What comes first?',
+            'type' => 'single',
             'options' => ['Wash hands', 'Wear gloves', 'Preheat oven', 'Clock in'],
             'correct_index' => 0,
         ])->assertSessionHasNoErrors();
@@ -67,6 +69,37 @@ class QuizTest extends TestCase
         $this->assertCount(4, $question->options);
         $this->assertSame(1, $question->options()->where('is_correct', true)->count());
         $this->assertTrue($question->options()->orderBy('order')->first()->is_correct);
+    }
+
+    public function test_a_multi_choice_question_needs_two_or_three_correct_answers(): void
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $quiz = Quiz::factory()->create();
+
+        $payload = [
+            'prompt' => 'Which are cleaning supplies?',
+            'type' => 'multi',
+            'options' => ['Soap', 'Sponge', 'Pizza cutter', 'Sanitizer'],
+        ];
+
+        $this->actingAs($admin)
+            ->post(route('training.quiz-questions.store', $quiz), [...$payload, 'correct_indexes' => [0]])
+            ->assertSessionHasErrors('correct_indexes');
+
+        $this->actingAs($admin)
+            ->post(route('training.quiz-questions.store', $quiz), [...$payload, 'correct_indexes' => [0, 1, 2, 3]])
+            ->assertSessionHasErrors('correct_indexes');
+
+        $this->actingAs($admin)
+            ->post(route('training.quiz-questions.store', $quiz), [...$payload, 'correct_indexes' => [0, 1, 3]])
+            ->assertSessionHasNoErrors();
+
+        $question = QuizQuestion::firstWhere('prompt', 'Which are cleaning supplies?');
+        $this->assertSame('multi', $question->type->value);
+        $this->assertEqualsCanonicalizing(
+            [0, 1, 3],
+            $question->options()->where('is_correct', true)->pluck('order')->all(),
+        );
     }
 
     public function test_a_quiz_is_capped_at_five_questions(): void
@@ -78,6 +111,7 @@ class QuizTest extends TestCase
         $this->actingAs($admin)
             ->post(route('training.quiz-questions.store', $quiz), [
                 'prompt' => 'One too many?',
+                'type' => 'single',
                 'options' => ['a', 'b', 'c', 'd'],
                 'correct_index' => 0,
             ])
@@ -140,6 +174,7 @@ class QuizTest extends TestCase
         $sent = app(TraineeProgress::class)->detail($trainee)['sections'][0]['quiz'];
         $this->assertSame('sent', $sent['attempt']['status']);
         $this->assertStringContainsString($attempt->token, $sent['attempt']['link']);
+        $this->assertFalse($sent['attempt']['flagged']);
         $this->assertArrayNotHasKey('score', $sent['attempt']);
 
         $attempt->update(['completed_at' => now(), 'score' => 100]);
@@ -188,6 +223,58 @@ class QuizTest extends TestCase
         $this->get(route('quiz.show', 'not-a-real-token'))->assertNotFound();
     }
 
+    // --- Wrong-recipient safety net ----------------------------------------
+
+    public function test_public_quiz_page_reports_whether_it_was_flagged_as_a_mismatch(): void
+    {
+        $this->withoutVite();
+        $quiz = Quiz::factory()->withQuestions()->create();
+        $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id]);
+
+        $this->get(route('quiz.show', $attempt->token))
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('flaggedAsMismatch', false));
+    }
+
+    public function test_reporting_a_mismatch_flags_the_attempt_without_completing_it(): void
+    {
+        $this->withoutVite();
+        $quiz = Quiz::factory()->withQuestions()->create();
+        $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id]);
+
+        $this->post(route('quiz.report-mismatch', $attempt->token))
+            ->assertRedirect(route('quiz.show', $attempt->token));
+
+        $attempt->refresh();
+        $this->assertTrue($attempt->isFlaggedAsMisdirected());
+        $this->assertFalse($attempt->isCompleted());
+
+        // The link stays valid — whoever it was actually meant for can still
+        // use it (identity gate re-runs on the frontend, not blocked here).
+        $this->get(route('quiz.show', $attempt->token))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('flaggedAsMismatch', true));
+    }
+
+    public function test_flagged_attempt_can_still_be_submitted_by_the_intended_trainee(): void
+    {
+        $quiz = Quiz::factory()->withQuestions(1)->create();
+        $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id]);
+        $question = $quiz->questions()->with('options')->first();
+
+        $this->post(route('quiz.report-mismatch', $attempt->token));
+
+        $this->post(route('quiz.store', $attempt->token), [
+            'answers' => [$question->id => [$question->options->first()->id]],
+        ])->assertRedirect(route('quiz.show', $attempt->token));
+
+        $this->assertTrue($attempt->fresh()->isCompleted());
+    }
+
+    public function test_an_unknown_token_404s_when_reporting_a_mismatch(): void
+    {
+        $this->post(route('quiz.report-mismatch', 'not-a-real-token'))->assertNotFound();
+    }
+
     public function test_submitting_the_quiz_scores_it_and_locks_the_link(): void
     {
         $quiz = Quiz::factory()->withQuestions(2)->create();
@@ -196,8 +283,8 @@ class QuizTest extends TestCase
 
         // Answer the first question correctly, the second incorrectly.
         $answers = [
-            $questions[0]->id => $questions[0]->options->firstWhere('is_correct', true)->id,
-            $questions[1]->id => $questions[1]->options->firstWhere('is_correct', false)->id,
+            $questions[0]->id => [$questions[0]->options->firstWhere('is_correct', true)->id],
+            $questions[1]->id => [$questions[1]->options->firstWhere('is_correct', false)->id],
         ];
 
         $this->post(route('quiz.store', $attempt->token), ['answers' => $answers])
@@ -221,12 +308,56 @@ class QuizTest extends TestCase
         $this->post(route('quiz.store', $attempt->token), [
             'answers' => [
                 // Swapped: question 0 answered with question 1's option id.
-                $questions[0]->id => $questions[1]->options->first()->id,
-                $questions[1]->id => $questions[1]->options->first()->id,
+                $questions[0]->id => [$questions[1]->options->first()->id],
+                $questions[1]->id => [$questions[1]->options->first()->id],
             ],
-        ])->assertSessionHasErrors("answers.{$questions[0]->id}");
+        ])->assertSessionHasErrors("answers.{$questions[0]->id}.0");
 
         $this->assertFalse($attempt->fresh()->isCompleted());
+    }
+
+    public function test_a_single_answer_question_rejects_more_than_one_selection(): void
+    {
+        $quiz = Quiz::factory()->withQuestions(1)->create();
+        $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id]);
+        $question = $quiz->questions()->with('options')->first();
+
+        $this->post(route('quiz.store', $attempt->token), [
+            'answers' => [$question->id => $question->options->pluck('id')->take(2)->all()],
+        ])->assertSessionHasErrors("answers.{$question->id}");
+
+        $this->assertFalse($attempt->fresh()->isCompleted());
+    }
+
+    public function test_a_multi_choice_question_only_scores_correct_on_an_exact_match(): void
+    {
+        $quiz = Quiz::factory()->create();
+        $question = QuizQuestion::factory()->withOptions([0, 1])->create(['quiz_id' => $quiz->id]);
+        $options = $question->options()->orderBy('order')->get();
+        $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id]);
+
+        // Missing one of the two correct options — not an exact match.
+        $this->post(route('quiz.store', $attempt->token), [
+            'answers' => [$question->id => [$options[0]->id]],
+        ])->assertRedirect(route('quiz.show', $attempt->token));
+
+        $this->assertSame(0, $attempt->refresh()->score);
+        $this->assertDatabaseCount('quiz_answers', 1);
+    }
+
+    public function test_a_multi_choice_question_scores_correct_when_the_full_set_is_selected(): void
+    {
+        $quiz = Quiz::factory()->create();
+        $question = QuizQuestion::factory()->withOptions([0, 1])->create(['quiz_id' => $quiz->id]);
+        $options = $question->options()->orderBy('order')->get();
+        $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id]);
+
+        $this->post(route('quiz.store', $attempt->token), [
+            'answers' => [$question->id => [$options[0]->id, $options[1]->id]],
+        ])->assertRedirect(route('quiz.show', $attempt->token));
+
+        $this->assertSame(100, $attempt->refresh()->score);
+        $this->assertDatabaseCount('quiz_answers', 2);
     }
 
     // --- Quiz Results (training team only) --------------------------------
@@ -270,6 +401,21 @@ class QuizTest extends TestCase
                 ->has('questions.0.options', 4)
                 ->where('questions.0.options', fn ($options) => collect($options)
                     ->firstWhere('id', $chosen->id)['is_chosen'] === true)
+            );
+    }
+
+    public function test_quiz_results_surfaces_attempts_flagged_as_sent_to_the_wrong_person(): void
+    {
+        $this->withoutVite();
+        $admin = User::factory()->superAdmin()->create();
+        $quiz = Quiz::factory()->withQuestions()->create();
+        $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id]);
+        $attempt->update(['wrong_recipient_reported_at' => now()]);
+
+        $this->actingAs($admin)
+            ->get(route('training.quiz-results.index'))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('attempts.0.flagged', true)
             );
     }
 

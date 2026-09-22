@@ -1,16 +1,19 @@
 import { Link } from '@inertiajs/react';
 import { TrendingUp } from 'lucide-react';
 import { CompletionBar } from '@/components/training/completion-bar';
+import { DevelopmentStatusBadge } from '@/components/training/development-status-badge';
 import { Button } from '@/components/ui/button';
-import { index as developmentZoneIndex } from '@/routes/development-zone';
-import { show as traineeShow } from '@/routes/trainees';
+import {
+    index as developmentZoneIndex,
+    show as developmentZoneShow,
+} from '@/routes/development-zone';
 import type { DevelopmentZoneTrainee } from '@/types/training';
 
 /**
- * Trainees currently flagged for extra coaching support, with progress
- * against their own curated plan. Clicking a name jumps straight into that
- * trainee's Development Plan tab; "View all" goes to the full Development
- * Zone page for browsing and managing the whole list.
+ * Trainees currently in the Development Zone, with progress against their
+ * own curated plan. Clicking a name jumps straight into that trainee's
+ * Development Zone detail; "View all" goes to the full Development Zone
+ * page for browsing and managing the whole list.
  */
 export function DevelopmentZonePanel({
     trainees,
@@ -34,20 +37,25 @@ export function DevelopmentZonePanel({
 
                 {trainees.length === 0 ? (
                     <p className="p-8 text-center text-sm text-muted-foreground">
-                        No one flagged for development right now.
+                        No one is in the Development Zone right now.
                     </p>
                 ) : (
                     <ul className="divide-y divide-border/60">
                         {trainees.slice(0, 6).map((trainee) => (
                             <li key={trainee.id}>
                                 <Link
-                                    href={`${traineeShow(trainee.id).url}?view=development`}
+                                    href={developmentZoneShow(trainee.id).url}
                                     className="flex flex-col gap-3 p-4 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:gap-4"
                                 >
                                     <div className="min-w-0 sm:flex-1">
-                                        <p className="truncate font-medium">
-                                            {trainee.name}
-                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="truncate font-medium">
+                                                {trainee.name}
+                                            </p>
+                                            <DevelopmentStatusBadge
+                                                status={trainee.status}
+                                            />
+                                        </div>
                                         <p className="truncate text-xs text-muted-foreground">
                                             {[
                                                 trainee.position,

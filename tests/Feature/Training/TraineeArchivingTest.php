@@ -16,7 +16,7 @@ class TraineeArchivingTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_assigned_manager_can_archive_and_restore_a_trainee(): void
+    public function test_assigned_manager_can_archive_a_trainee_but_not_restore_it(): void
     {
         $store = Store::factory()->create();
         $manager = User::factory()->manager($store)->create();
@@ -31,13 +31,87 @@ class TraineeArchivingTest extends TestCase
         $this->assertTrue($trainee->isArchived());
         $this->assertSame($manager->id, $trainee->archived_by);
 
+        // Once a trainee is History, only an admin may bring them back —
+        // a manager is view-only from here on.
         $this->actingAs($manager)
+            ->patch(route('trainees.restore', $trainee))
+            ->assertForbidden();
+
+        $this->assertTrue($trainee->refresh()->isArchived());
+    }
+
+    public function test_admin_can_restore_an_archived_trainee(): void
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $trainee = Trainee::factory()->archived()->create();
+
+        $this->actingAs($admin)
             ->patch(route('trainees.restore', $trainee))
             ->assertSessionHasNoErrors();
 
-        $trainee->refresh();
-        $this->assertFalse($trainee->isArchived());
+        $this->assertFalse($trainee->refresh()->isArchived());
         $this->assertNull($trainee->archived_by);
+    }
+
+    public function test_manager_cannot_edit_or_delete_an_archived_trainee(): void
+    {
+        $store = Store::factory()->create();
+        $manager = User::factory()->manager($store)->create();
+        $trainee = Trainee::factory()->forStore($store)->archived()->create();
+        $trainee->managers()->attach($manager);
+
+        $this->actingAs($manager)
+            ->get(route('trainees.edit', $trainee))
+            ->assertForbidden();
+
+        $this->actingAs($manager)
+            ->put(route('trainees.update', $trainee), ['name' => 'Renamed'])
+            ->assertForbidden();
+
+        $this->actingAs($manager)
+            ->delete(route('trainees.destroy', $trainee))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('trainees', ['id' => $trainee->id, 'name' => $trainee->name]);
+    }
+
+    public function test_manager_can_still_view_an_archived_trainee_read_only(): void
+    {
+        $this->withoutVite();
+        $store = Store::factory()->create();
+        $manager = User::factory()->manager($store)->create();
+        $trainee = Trainee::factory()->forStore($store)->archived()->create();
+        $trainee->managers()->attach($manager);
+
+        $this->actingAs($manager)
+            ->get(route('trainees.show', $trainee))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('canManage', false)
+                ->where('canDelete', false)
+            );
+    }
+
+    public function test_admin_can_edit_and_delete_an_archived_trainee(): void
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $trainee = Trainee::factory()->archived()->create();
+
+        $this->actingAs($admin)
+            ->put(route('trainees.update', $trainee), [
+                'name' => 'Corrected Name',
+                'position' => $trainee->position,
+                'hired_at' => $trainee->hired_at?->toDateString(),
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('Corrected Name', $trainee->refresh()->name);
+
+        $this->actingAs($admin)
+            ->delete(route('trainees.destroy', $trainee))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseMissing('trainees', ['id' => $trainee->id]);
     }
 
     public function test_unassigned_manager_cannot_archive_a_trainee(): void

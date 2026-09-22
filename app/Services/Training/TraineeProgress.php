@@ -185,7 +185,7 @@ class TraineeProgress
      * Quiz Results view.
      *
      * @param  Collection<int, QuizAttempt>  $attemptsByQuizId
-     * @return array{id: int, questions_count: int, attempt: array{status: string, link: string|null}|null}|null
+     * @return array{id: int, questions_count: int, attempt: array{status: string, link: string|null, flagged: bool}|null}|null
      */
     private function quizStatus(Section $section, Collection $attemptsByQuizId): ?array
     {
@@ -203,6 +203,7 @@ class TraineeProgress
             'attempt' => $attempt ? [
                 'status' => $attempt->isCompleted() ? 'completed' : 'sent',
                 'link' => $attempt->isCompleted() ? null : route('quiz.show', $attempt->token),
+                'flagged' => $attempt->isFlaggedAsMisdirected(),
             ] : null,
         ];
     }
@@ -237,11 +238,13 @@ class TraineeProgress
     }
 
     /**
-     * A trainee's curated Development Plan items with evaluations merged in
-     * (same shape as `detail()`'s items, so the frontend can reuse the exact
-     * same evaluation UI), plus completion within just this subset.
+     * A trainee's curated Development Plan, grouped into the same
+     * Section → Category → item tree shape as `detail()` (so the frontend
+     * can render it with the exact same section/category UI as the standard
+     * checklist) but containing only this trainee's picked items, plus
+     * completion within just this subset.
      *
-     * @return array{items: array<int, mixed>, stats: array{completed: int, total: int}}
+     * @return array{sections: array<int, mixed>, stats: array{completed: int, total: int}}
      */
     public function developmentPlan(Trainee $trainee): array
     {
@@ -255,32 +258,80 @@ class TraineeProgress
             ->get()
             ->keyBy('checklist_item_id');
 
-        $mapped = $items->map(function (ChecklistItem $item) use ($evaluations): array {
-            $evaluation = $evaluations->get($item->id);
+        $mapItem = fn (ChecklistItem $item): array => [
+            'id' => $item->id,
+            'category_id' => $item->category_id,
+            'parent_id' => $item->parent_id,
+            'title' => $item->title,
+            'content' => $item->content,
+            'importance' => $item->importance,
+            'requires_rating' => $item->requires_rating,
+            'order' => $item->order,
+            'media' => $item->media,
+            'children' => [],
+            'evaluation' => ($evaluation = $evaluations->get($item->id)) ? [
+                'completed' => (bool) $evaluation->completed,
+                'rating' => $evaluation->rating,
+                'notes' => $evaluation->notes,
+            ] : null,
+        ];
 
-            return [
-                'id' => $item->id,
-                'category_id' => $item->category_id,
-                'parent_id' => $item->parent_id,
-                'title' => $item->title,
-                'content' => $item->content,
-                'importance' => $item->importance,
-                'requires_rating' => $item->requires_rating,
-                'order' => $item->order,
-                'media' => $item->media,
-                'children' => [],
-                'evaluation' => $evaluation ? [
-                    'completed' => (bool) $evaluation->completed,
-                    'rating' => $evaluation->rating,
-                    'notes' => $evaluation->notes,
-                ] : null,
-                'section_title' => $item->category->section->title,
-                'category_title' => $item->category->title,
+        // Average of only the rated items among the given set — same
+        // approach as detail()'s collectRatings, just scoped to a flat list
+        // since plan items are always leaves.
+        $average = function (Collection $categoryItems) use ($evaluations): ?float {
+            $ratings = $categoryItems
+                ->map(fn (ChecklistItem $item) => $evaluations->get($item->id)?->rating)
+                ->filter(fn (?int $rating): bool => $rating !== null);
+
+            return $ratings->isEmpty() ? null : round($ratings->average(), 1);
+        };
+
+        $sections = [];
+
+        foreach ($items->groupBy(fn (ChecklistItem $item) => $item->category->section_id) as $sectionItems) {
+            $section = $sectionItems->first()->category->section;
+            $categories = [];
+
+            foreach ($sectionItems->groupBy('category_id') as $categoryItems) {
+                $category = $categoryItems->first()->category;
+
+                $categories[] = [
+                    'order' => $category->order,
+                    'data' => [
+                        'id' => $category->id,
+                        'title' => $category->title,
+                        'description' => $category->description,
+                        'color' => $category->color,
+                        'average_rating' => $average($categoryItems),
+                        'items' => $categoryItems->sortBy('order')->map($mapItem)->values()->all(),
+                    ],
+                ];
+            }
+
+            usort($categories, fn (array $a, array $b): int => $a['order'] <=> $b['order']);
+
+            $sections[] = [
+                'order' => $section->order,
+                'data' => [
+                    'id' => $section->id,
+                    'title' => $section->title,
+                    'description' => $section->description,
+                    'icon' => $section->icon,
+                    'pie_content_review' => $section->pie_content_review,
+                    'screen_to_shoulder' => $section->screen_to_shoulder,
+                    'hands_on_shifts' => $section->hands_on_shifts,
+                    'average_rating' => $average($sectionItems),
+                    'categories' => array_map(fn (array $c): array => $c['data'], $categories),
+                    'quiz' => null,
+                ],
             ];
-        })->values()->all();
+        }
+
+        usort($sections, fn (array $a, array $b): int => $a['order'] <=> $b['order']);
 
         return [
-            'items' => $mapped,
+            'sections' => array_map(fn (array $s): array => $s['data'], $sections),
             'stats' => [
                 'completed' => $evaluations->filter(fn (Evaluation $e): bool => (bool) $e->completed)->count(),
                 'total' => $items->count(),

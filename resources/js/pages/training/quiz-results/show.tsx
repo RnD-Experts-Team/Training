@@ -87,11 +87,16 @@ export default function QuizResultShow() {
                     {questions.map((question, index) => (
                         <div key={question.id} className="surface-tray">
                             <div className="surface-core gap-3 p-5">
-                                <p className="text-sm font-medium">
+                                <p className="flex items-center gap-1.5 text-sm font-medium">
                                     <span className="text-muted-foreground">
                                         {index + 1}.
                                     </span>{' '}
                                     {question.prompt}
+                                    {question.type === 'multi' && (
+                                        <span className="shrink-0 rounded-full border border-border/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground uppercase">
+                                            Multi
+                                        </span>
+                                    )}
                                 </p>
                                 <div className="mt-3 grid gap-2">
                                     {question.options.map(

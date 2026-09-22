@@ -1,7 +1,7 @@
 import { ListChecks, Target } from 'lucide-react';
+import { ChecklistSections } from '@/components/training/checklist-sections';
 import { CompletionBar } from '@/components/training/completion-bar';
 import { DevelopmentPlanPicker } from '@/components/training/development-plan-picker';
-import { EvaluationItem } from '@/components/training/evaluation-item';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type {
@@ -11,15 +11,23 @@ import type {
 
 export function DevelopmentPlanPanel({
     traineeId,
+    traineeName,
     plan,
     picker,
     readOnly,
 }: {
     traineeId: number;
+    traineeName: string;
     plan: DevelopmentPlanData;
     picker: DevelopmentPickerSection[];
     readOnly: boolean;
 }) {
+    const selectedIds = plan.sections.flatMap((section) =>
+        section.categories.flatMap((category) =>
+            category.items.map((item) => item.id),
+        ),
+    );
+
     return (
         <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -37,7 +45,7 @@ export function DevelopmentPlanPanel({
                     <DevelopmentPlanPicker
                         traineeId={traineeId}
                         sections={picker}
-                        selectedIds={plan.items.map((item) => item.id)}
+                        selectedIds={selectedIds}
                         trigger={
                             <Button variant="outline" size="sm">
                                 <ListChecks className="size-4" /> Edit plan
@@ -47,7 +55,7 @@ export function DevelopmentPlanPanel({
                 )}
             </div>
 
-            {plan.items.length === 0 ? (
+            {plan.sections.length === 0 ? (
                 <Card className="flex flex-col items-center justify-center gap-3 border-dashed p-10 text-center">
                     <Target className="size-8 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">
@@ -56,21 +64,12 @@ export function DevelopmentPlanPanel({
                     </p>
                 </Card>
             ) : (
-                <div className="space-y-3">
-                    {plan.items.map((item) => (
-                        <div key={item.id} className="space-y-1">
-                            <p className="text-xs text-muted-foreground">
-                                {item.section_title} · {item.category_title}
-                            </p>
-                            <EvaluationItem
-                                item={item}
-                                traineeId={traineeId}
-                                currentStepId={null}
-                                readOnly={readOnly}
-                            />
-                        </div>
-                    ))}
-                </div>
+                <ChecklistSections
+                    sections={plan.sections}
+                    traineeId={traineeId}
+                    traineeName={traineeName}
+                    readOnly={readOnly}
+                />
             )}
         </div>
     );

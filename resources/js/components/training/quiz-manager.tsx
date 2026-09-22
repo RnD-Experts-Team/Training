@@ -152,18 +152,26 @@ export function QuizManager({
                                     {index + 1}
                                 </span>
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-medium">
-                                        {question.prompt}
-                                    </p>
+                                    <div className="flex items-center gap-1.5">
+                                        <p className="text-sm font-medium">
+                                            {question.prompt}
+                                        </p>
+                                        {question.type === 'multi' && (
+                                            <span className="shrink-0 rounded-full border border-border/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground uppercase">
+                                                Multi
+                                            </span>
+                                        )}
+                                    </div>
                                     <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                                         <CheckCircle2 className="size-3.5 shrink-0 text-emerald-500" />
                                         <span className="truncate">
-                                            {
-                                                question.options.find(
+                                            {question.options
+                                                .filter(
                                                     (option) =>
                                                         option.is_correct,
-                                                )?.text
-                                            }
+                                                )
+                                                .map((option) => option.text)
+                                                .join(' · ')}
                                         </span>
                                     </p>
                                 </div>

@@ -134,11 +134,10 @@ class TraineeController extends Controller
                 'managers' => $trainee->managers->map->only(['id', 'name'])->values(),
                 'archived_at' => $trainee->archived_at?->toIso8601String(),
                 'archived_by' => $trainee->archivedBy?->only(['id', 'name']),
-                'needs_development' => $trainee->needs_development,
             ],
             'progress' => $progress->detail($trainee),
-            'developmentPlan' => $progress->developmentPlan($trainee),
-            'developmentPicker' => $progress->pickerTree(),
+            'canManage' => $request->user()->can('update', $trainee),
+            'canDelete' => $request->user()->can('delete', $trainee),
             'canAssignManagers' => $isSuperAdmin,
             'availableManagers' => $isSuperAdmin
                 ? User::where('role', Role::Manager)

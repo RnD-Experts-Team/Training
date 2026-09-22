@@ -75,9 +75,12 @@ export type QuizQuestionOption = {
     order: number;
 };
 
+export type QuizQuestionType = 'single' | 'multi';
+
 export type QuizQuestion = {
     id: number;
     prompt: string;
+    type: QuizQuestionType;
     order: number;
     options: QuizQuestionOption[];
 };
@@ -131,7 +134,6 @@ export type TraineeDetail = {
     managers: { id: number; name: string }[];
     archived_at: string | null;
     archived_by: { id: number; name: string } | null;
-    needs_development: boolean;
 };
 
 export type TraineeStatusCounts = {
@@ -178,7 +180,11 @@ export type QuizAttemptStatus = 'sent' | 'completed';
 export type SectionQuiz = {
     id: number;
     questions_count: number;
-    attempt: { status: QuizAttemptStatus; link: string | null } | null;
+    attempt: {
+        status: QuizAttemptStatus;
+        link: string | null;
+        flagged: boolean;
+    } | null;
 };
 
 export type ProgressSection = {
@@ -249,24 +255,73 @@ export type DevelopmentPickerSection = {
     categories: DevelopmentPickerCategory[];
 };
 
-export type DevelopmentPlanItem = EvaluationItem & {
-    section_title: string;
-    category_title: string;
-};
-
 export type DevelopmentStats = { completed: number; total: number };
 
 export type DevelopmentPlanData = {
-    items: DevelopmentPlanItem[];
+    sections: ProgressSection[];
     stats: DevelopmentStats;
 };
+
+export type DevelopmentStatus = 'pending' | 'active' | 'completed';
+
+export const DEVELOPMENT_STATUS_LABELS: Record<DevelopmentStatus, string> = {
+    pending: 'Pending',
+    active: 'Active',
+    completed: 'Completed',
+};
+
+export type DevelopmentCriterion = {
+    id: number;
+    label: string;
+    description: string | null;
+    order?: number;
+    is_active?: boolean;
+};
+
+export type DevelopmentEvaluationRatingInput = {
+    criterion_id: number;
+    rating: number;
+};
+
+export type DevelopmentEvaluationSummary = {
+    id: number;
+    evaluator: { id: number; name: string } | null;
+    notes: string | null;
+    submitted_at: string;
+    ratings: { criterion: DevelopmentCriterion; rating: number }[];
+} | null;
 
 export type DevelopmentZoneTrainee = {
     id: number;
     name: string;
     position: string | null;
     store: StoreOption;
+    status: DevelopmentStatus;
     stats: DevelopmentStats;
+};
+
+export type AddableTrainee = {
+    id: number;
+    name: string;
+    position: string | null;
+    store: StoreOption;
+};
+
+export type DevelopmentZoneShowData = {
+    trainee: {
+        id: number;
+        name: string;
+        position: string | null;
+        store: StoreOption;
+        status: DevelopmentStatus;
+        archived_at: string | null;
+    };
+    evaluation: DevelopmentEvaluationSummary;
+    developmentPlan: DevelopmentPlanData;
+    developmentPicker: DevelopmentPickerSection[];
+    canManagePlan: boolean;
+    canComplete: boolean;
+    canRemove: boolean;
 };
 
 /** A row in the training-team-only Quiz Results list. */
@@ -276,6 +331,7 @@ export type QuizAttemptRow = {
     store: StoreOption;
     section: { id: number; title: string };
     status: QuizAttemptStatus;
+    flagged: boolean;
     score: number | null;
     sent_at: string;
     completed_at: string | null;
@@ -292,6 +348,7 @@ export type QuizResultOption = {
 export type QuizResultQuestion = {
     id: number;
     prompt: string;
+    type: QuizQuestionType;
     options: QuizResultOption[];
 };
 

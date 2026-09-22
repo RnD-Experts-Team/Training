@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\QuizQuestionType;
 use Database\Factories\QuizQuestionFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property int $quiz_id
  * @property string $prompt
+ * @property QuizQuestionType $type
  * @property int $order
  * @property-read Quiz $quiz
  * @property-read Collection<int, QuizQuestionOption> $options
@@ -23,7 +25,17 @@ class QuizQuestion extends Model
     use HasFactory;
 
     /** @var list<string> */
-    protected $fillable = ['quiz_id', 'prompt', 'order'];
+    protected $fillable = ['quiz_id', 'prompt', 'type', 'order'];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'type' => QuizQuestionType::class,
+        ];
+    }
 
     /**
      * @return BelongsTo<Quiz, $this>

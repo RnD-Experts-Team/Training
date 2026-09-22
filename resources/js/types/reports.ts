@@ -90,6 +90,21 @@ export type ImportanceRow = {
     evaluations: number;
 };
 
+export type DevelopmentZoneSummary = {
+    pending: number;
+    active: number;
+    completed: number;
+    in_zone: number;
+    average_evaluation_rating: number | null;
+    plan_completion: number;
+};
+
+export type QuizResultsSummary = {
+    sent: number;
+    completed: number;
+    average_score: number | null;
+};
+
 export type ReportFilters = {
     store: number | null;
     weeks: number;

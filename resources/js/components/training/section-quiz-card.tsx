@@ -1,5 +1,12 @@
 import { router } from '@inertiajs/react';
-import { Check, CheckCircle2, Copy, FileQuestion, Send } from 'lucide-react';
+import {
+    Check,
+    CheckCircle2,
+    Copy,
+    FileQuestion,
+    Send,
+    ShieldAlert,
+} from 'lucide-react';
 import { useState } from 'react';
 import { QuizStatusBadge } from '@/components/training/quiz-status-badge';
 import { Button } from '@/components/ui/button';
@@ -17,10 +24,12 @@ const MIN_QUESTIONS_TO_SEND = 3;
  */
 export function SectionQuizCard({
     traineeId,
+    traineeName,
     quiz,
     readOnly,
 }: {
     traineeId: number;
+    traineeName: string;
     quiz: SectionQuiz;
     readOnly: boolean;
 }) {
@@ -107,32 +116,53 @@ export function SectionQuizCard({
                 </div>
                 <QuizStatusBadge status="sent" />
             </div>
-            <div className="flex gap-2 sm:pl-12">
-                <Input
-                    readOnly
-                    value={quiz.attempt.link ?? ''}
-                    className="font-mono text-xs"
-                    onFocus={(event) => event.currentTarget.select()}
-                />
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0"
-                    onClick={() =>
-                        quiz.attempt?.link && copyLink(quiz.attempt.link)
-                    }
-                >
-                    {copied ? (
-                        <>
-                            <Check className="size-4" /> Copied
-                        </>
-                    ) : (
-                        <>
-                            <Copy className="size-4" /> Copy
-                        </>
-                    )}
-                </Button>
+
+            {quiz.attempt.flagged && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-700 sm:ml-12 dark:text-amber-400">
+                    <ShieldAlert className="size-4 shrink-0" />
+                    <span>
+                        Someone reported this link wasn't meant for them — this
+                        may have gone to the wrong person. Ask an admin to reset
+                        it if needed.
+                    </span>
+                </div>
+            )}
+
+            <div className="space-y-1.5 sm:pl-12">
+                <p className="text-xs text-muted-foreground">
+                    This link is only for{' '}
+                    <span className="font-medium text-foreground">
+                        {traineeName}
+                    </span>{' '}
+                    — double-check before you share it.
+                </p>
+                <div className="flex gap-2">
+                    <Input
+                        readOnly
+                        value={quiz.attempt.link ?? ''}
+                        className="font-mono text-xs"
+                        onFocus={(event) => event.currentTarget.select()}
+                    />
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0"
+                        onClick={() =>
+                            quiz.attempt?.link && copyLink(quiz.attempt.link)
+                        }
+                    >
+                        {copied ? (
+                            <>
+                                <Check className="size-4" /> Copied
+                            </>
+                        ) : (
+                            <>
+                                <Copy className="size-4" /> Copy
+                            </>
+                        )}
+                    </Button>
+                </div>
             </div>
         </Card>
     );

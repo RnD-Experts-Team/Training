@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $sent_at
  * @property Carbon|null $completed_at
  * @property int|null $score
+ * @property Carbon|null $wrong_recipient_reported_at
  * @property-read Quiz $quiz
  * @property-read Trainee $trainee
  * @property-read Collection<int, QuizAnswer> $answers
@@ -32,7 +33,9 @@ class QuizAttempt extends Model
     use HasFactory;
 
     /** @var list<string> */
-    protected $fillable = ['quiz_id', 'trainee_id', 'token', 'sent_at', 'completed_at', 'score'];
+    protected $fillable = [
+        'quiz_id', 'trainee_id', 'token', 'sent_at', 'completed_at', 'score', 'wrong_recipient_reported_at',
+    ];
 
     /**
      * @return array<string, string>
@@ -42,6 +45,7 @@ class QuizAttempt extends Model
         return [
             'sent_at' => 'datetime',
             'completed_at' => 'datetime',
+            'wrong_recipient_reported_at' => 'datetime',
         ];
     }
 
@@ -72,5 +76,14 @@ class QuizAttempt extends Model
     public function isCompleted(): bool
     {
         return $this->completed_at !== null;
+    }
+
+    /**
+     * Whether the person who opened this link said it wasn't meant for them
+     * — a signal the manager sent it to the wrong employee.
+     */
+    public function isFlaggedAsMisdirected(): bool
+    {
+        return $this->wrong_recipient_reported_at !== null;
     }
 }

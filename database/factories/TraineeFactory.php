@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\DevelopmentStatus;
 use App\Models\Store;
 use App\Models\Trainee;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -48,12 +49,12 @@ class TraineeFactory extends Factory
     }
 
     /**
-     * Flagged for extra coaching support (Dashboard Development Zone).
+     * In the Development Zone at the given lifecycle status.
      */
-    public function needsDevelopmentFlagged(): static
+    public function developmentStatus(DevelopmentStatus $status): static
     {
         return $this->state(fn (array $attributes) => [
-            'needs_development' => true,
+            'development_status' => $status,
         ]);
     }
 }
