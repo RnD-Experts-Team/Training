@@ -11,6 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Safe to run again if an earlier attempt stopped after adding it.
+        if (Schema::hasColumn('quiz_questions', 'type')) {
+            return;
+        }
+
         Schema::table('quiz_questions', function (Blueprint $table): void {
             $table->string('type')->default('single')->after('prompt');
         });

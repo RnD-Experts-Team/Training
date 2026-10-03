@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Training;
 
+use App\Enums\Permission;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
 use App\Models\QuizQuestion;
@@ -122,7 +123,30 @@ class QuizTest extends TestCase
 
     // --- Sending ---------------------------------------------------------
 
-    public function test_assigned_manager_can_send_a_quiz_and_reuses_the_existing_link(): void
+    public function test_super_admin_can_send_a_quiz_and_reuses_the_existing_link(): void
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $trainee = Trainee::factory()->create();
+        $quiz = Quiz::factory()->withQuestions()->create();
+
+        $this->actingAs($admin)
+            ->post(route('trainees.quiz-attempts.store', $trainee), ['quiz_id' => $quiz->id])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('quiz_attempts', 1);
+        $firstToken = QuizAttempt::sole()->token;
+
+        // Sending again (e.g. re-opening the page) must not invalidate the
+        // link already shared with the employee.
+        $this->actingAs($admin)
+            ->post(route('trainees.quiz-attempts.store', $trainee), ['quiz_id' => $quiz->id])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('quiz_attempts', 1);
+        $this->assertSame($firstToken, QuizAttempt::sole()->token);
+    }
+
+    public function test_assigned_manager_cannot_send_a_quiz(): void
     {
         $store = Store::factory()->create();
         $manager = User::factory()->manager($store)->create();
@@ -132,25 +156,80 @@ class QuizTest extends TestCase
 
         $this->actingAs($manager)
             ->post(route('trainees.quiz-attempts.store', $trainee), ['quiz_id' => $quiz->id])
-            ->assertSessionHasNoErrors();
+            ->assertForbidden();
 
-        $this->assertDatabaseCount('quiz_attempts', 1);
-        $firstToken = QuizAttempt::sole()->token;
+        $this->assertDatabaseCount('quiz_attempts', 0);
+    }
 
-        // Sending again (e.g. re-opening the page) must not invalidate the
-        // link already shared with the employee.
-        $this->actingAs($manager)
+    public function test_a_quiz_with_fewer_than_three_questions_cannot_be_sent(): void
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $trainee = Trainee::factory()->create();
+        $quiz = Quiz::factory()->withQuestions(2)->create();
+
+        $this->actingAs($admin)
             ->post(route('trainees.quiz-attempts.store', $trainee), ['quiz_id' => $quiz->id])
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasErrors('quiz_id');
 
-        $this->assertDatabaseCount('quiz_attempts', 1);
-        $this->assertSame($firstToken, QuizAttempt::sole()->token);
+        $this->assertDatabaseCount('quiz_attempts', 0);
+    }
+
+    public function test_an_archived_trainee_cannot_be_sent_a_quiz(): void
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $trainee = Trainee::factory()->archived()->create();
+        $quiz = Quiz::factory()->withQuestions()->create();
+
+        $this->actingAs($admin)
+            ->post(route('trainees.quiz-attempts.store', $trainee), ['quiz_id' => $quiz->id])
+            ->assertSessionHasErrors('quiz_id');
+
+        $this->assertDatabaseCount('quiz_attempts', 0);
     }
 
     public function test_unassigned_manager_cannot_send_a_quiz(): void
     {
         $manager = User::factory()->manager()->create();
         $trainee = Trainee::factory()->create();
+        $quiz = Quiz::factory()->withQuestions()->create();
+
+        $this->actingAs($manager)
+            ->post(route('trainees.quiz-attempts.store', $trainee), ['quiz_id' => $quiz->id])
+            ->assertForbidden();
+    }
+
+    public function test_manager_granted_the_permission_can_send_a_quiz_to_their_trainee(): void
+    {
+        $store = Store::factory()->create();
+        $manager = User::factory()->manager($store)->withPermissions(Permission::ShareQuizLinks)->create();
+        $trainee = Trainee::factory()->forStore($store)->create();
+        $quiz = Quiz::factory()->withQuestions()->create();
+
+        $this->actingAs($manager)
+            ->post(route('trainees.quiz-attempts.store', $trainee), ['quiz_id' => $quiz->id])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('quiz_attempts', 1);
+    }
+
+    public function test_the_permission_does_not_reach_trainees_outside_the_managers_stores(): void
+    {
+        $manager = User::factory()->manager()->withPermissions(Permission::ShareQuizLinks)->create();
+        $trainee = Trainee::factory()->create();
+        $quiz = Quiz::factory()->withQuestions()->create();
+
+        $this->actingAs($manager)
+            ->post(route('trainees.quiz-attempts.store', $trainee), ['quiz_id' => $quiz->id])
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('quiz_attempts', 0);
+    }
+
+    public function test_the_permission_does_not_allow_sending_to_an_archived_trainee(): void
+    {
+        $store = Store::factory()->create();
+        $manager = User::factory()->manager($store)->withPermissions(Permission::ShareQuizLinks)->create();
+        $trainee = Trainee::factory()->forStore($store)->archived()->create();
         $quiz = Quiz::factory()->withQuestions()->create();
 
         $this->actingAs($manager)
@@ -166,22 +245,83 @@ class QuizTest extends TestCase
         $quiz = Quiz::factory()->withQuestions()->create(['section_id' => $section->id]);
         $trainee = Trainee::factory()->create();
 
-        $notSent = app(TraineeProgress::class)->detail($trainee)['sections'][0]['quiz'];
+        $notSent = app(TraineeProgress::class)->detail($trainee, canShareQuizLinks: true)['sections'][0]['quiz'];
         $this->assertSame($quiz->id, $notSent['id']);
         $this->assertNull($notSent['attempt']);
 
         $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id, 'trainee_id' => $trainee->id]);
-        $sent = app(TraineeProgress::class)->detail($trainee)['sections'][0]['quiz'];
-        $this->assertSame('sent', $sent['attempt']['status']);
+        $sent = app(TraineeProgress::class)->detail($trainee, canShareQuizLinks: true)['sections'][0]['quiz'];
+        $this->assertSame('not_started', $sent['attempt']['status']);
         $this->assertStringContainsString($attempt->token, $sent['attempt']['link']);
         $this->assertFalse($sent['attempt']['flagged']);
         $this->assertArrayNotHasKey('score', $sent['attempt']);
 
+        $attempt->update(['started_at' => now()]);
+        $started = app(TraineeProgress::class)->detail($trainee, canShareQuizLinks: true)['sections'][0]['quiz'];
+        $this->assertSame('in_progress', $started['attempt']['status']);
+        $this->assertStringContainsString($attempt->token, $started['attempt']['link']);
+
         $attempt->update(['completed_at' => now(), 'score' => 100]);
-        $completed = app(TraineeProgress::class)->detail($trainee)['sections'][0]['quiz'];
+        $completed = app(TraineeProgress::class)->detail($trainee, canShareQuizLinks: true)['sections'][0]['quiz'];
         $this->assertSame('completed', $completed['attempt']['status']);
         $this->assertNull($completed['attempt']['link']);
         $this->assertArrayNotHasKey('score', $completed['attempt']);
+    }
+
+    public function test_trainee_progress_omits_the_pending_link_for_viewers_who_cannot_share_it(): void
+    {
+        $section = Section::factory()->published()->create();
+        $quiz = Quiz::factory()->withQuestions()->create(['section_id' => $section->id]);
+        $trainee = Trainee::factory()->create();
+        QuizAttempt::factory()->create(['quiz_id' => $quiz->id, 'trainee_id' => $trainee->id]);
+
+        $sent = app(TraineeProgress::class)->detail($trainee)['sections'][0]['quiz'];
+
+        $this->assertSame('not_started', $sent['attempt']['status']);
+        $this->assertNull($sent['attempt']['link']);
+    }
+
+    public function test_trainee_page_shows_the_quiz_link_to_super_admins_only(): void
+    {
+        $store = Store::factory()->create();
+        $manager = User::factory()->manager($store)->create();
+        $admin = User::factory()->superAdmin()->create();
+        $trainee = Trainee::factory()->forStore($store)->create();
+        $section = Section::factory()->published()->create();
+        $quiz = Quiz::factory()->withQuestions()->create(['section_id' => $section->id]);
+        $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id, 'trainee_id' => $trainee->id]);
+
+        $this->actingAs($manager)
+            ->get(route('trainees.show', $trainee))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('canShareQuizLinks', false)
+                ->where('progress.sections.0.quiz.attempt.status', 'not_started')
+                ->where('progress.sections.0.quiz.attempt.link', null)
+            );
+
+        $this->actingAs($admin)
+            ->get(route('trainees.show', $trainee))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('canShareQuizLinks', true)
+                ->where('progress.sections.0.quiz.attempt.link', route('quiz.show', $attempt->token))
+            );
+    }
+
+    public function test_trainee_page_shows_the_quiz_link_to_a_manager_granted_the_permission(): void
+    {
+        $store = Store::factory()->create();
+        $manager = User::factory()->manager($store)->withPermissions(Permission::ShareQuizLinks)->create();
+        $trainee = Trainee::factory()->forStore($store)->create();
+        $section = Section::factory()->published()->create();
+        $quiz = Quiz::factory()->withQuestions()->create(['section_id' => $section->id]);
+        $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id, 'trainee_id' => $trainee->id]);
+
+        $this->actingAs($manager)
+            ->get(route('trainees.show', $trainee))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('canShareQuizLinks', true)
+                ->where('progress.sections.0.quiz.attempt.link', route('quiz.show', $attempt->token))
+            );
     }
 
     // --- Public quiz page --------------------------------------------------
@@ -275,6 +415,58 @@ class QuizTest extends TestCase
         $this->post(route('quiz.report-mismatch', 'not-a-real-token'))->assertNotFound();
     }
 
+    // --- Started tracking ----------------------------------------------------
+
+    public function test_just_opening_the_link_does_not_mark_the_quiz_as_started(): void
+    {
+        $this->withoutVite();
+        $quiz = Quiz::factory()->withQuestions()->create();
+        $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id]);
+
+        // Chat apps fetch links to build previews — a GET must never count.
+        $this->get(route('quiz.show', $attempt->token))->assertOk();
+
+        $this->assertNull($attempt->fresh()->started_at);
+    }
+
+    public function test_confirming_identity_marks_the_quiz_as_started_once(): void
+    {
+        $quiz = Quiz::factory()->withQuestions()->create();
+        $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id]);
+
+        $this->post(route('quiz.start', $attempt->token))
+            ->assertRedirect(route('quiz.show', $attempt->token));
+
+        $startedAt = $attempt->fresh()->started_at;
+        $this->assertNotNull($startedAt);
+        $this->assertSame('in_progress', $attempt->fresh()->status()->value);
+
+        // Re-opening later keeps the original start time.
+        $this->travel(2)->hours();
+        $this->post(route('quiz.start', $attempt->token));
+
+        $this->assertTrue($startedAt->equalTo($attempt->fresh()->started_at));
+    }
+
+    public function test_starting_a_completed_quiz_changes_nothing(): void
+    {
+        $quiz = Quiz::factory()->withQuestions()->create();
+        $attempt = QuizAttempt::factory()->completed()->create([
+            'quiz_id' => $quiz->id,
+            'started_at' => null,
+        ]);
+
+        $this->post(route('quiz.start', $attempt->token));
+
+        $this->assertNull($attempt->fresh()->started_at);
+        $this->assertSame('completed', $attempt->fresh()->status()->value);
+    }
+
+    public function test_an_unknown_token_404s_when_starting(): void
+    {
+        $this->post(route('quiz.start', 'not-a-real-token'))->assertNotFound();
+    }
+
     public function test_submitting_the_quiz_scores_it_and_locks_the_link(): void
     {
         $quiz = Quiz::factory()->withQuestions(2)->create();
@@ -294,6 +486,8 @@ class QuizTest extends TestCase
         $this->assertTrue($attempt->isCompleted());
         $this->assertSame(50, $attempt->score);
         $this->assertDatabaseCount('quiz_answers', 2);
+        // Submitting without a recorded start still leaves a full timeline.
+        $this->assertNotNull($attempt->started_at);
 
         // The link is now inert — no re-submitting over a scored attempt.
         $this->post(route('quiz.store', $attempt->token), $answers)->assertNotFound();
@@ -398,9 +592,57 @@ class QuizTest extends TestCase
             ->get(route('training.quiz-results.show', $attempt))
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('attempt.score', 75)
+                ->where('attempt.status', 'completed')
+                ->where('attempt.link', null)
+                ->where('attempt.correct_count', 0)
+                ->where('attempt.questions_count', 1)
+                ->where('questions.0.is_correct', false)
                 ->has('questions.0.options', 4)
                 ->where('questions.0.options', fn ($options) => collect($options)
                     ->firstWhere('id', $chosen->id)['is_chosen'] === true)
+            );
+    }
+
+    public function test_quiz_results_distinguish_not_started_in_progress_and_completed(): void
+    {
+        $this->withoutVite();
+        $admin = User::factory()->superAdmin()->create();
+        $quiz = Quiz::factory()->withQuestions()->create();
+        $notStarted = QuizAttempt::factory()->create(['quiz_id' => $quiz->id, 'sent_at' => now()->subDays(3)]);
+        $inProgress = QuizAttempt::factory()->started()->create(['quiz_id' => $quiz->id, 'sent_at' => now()->subDays(2)]);
+        QuizAttempt::factory()->completed(80)->create(['quiz_id' => $quiz->id, 'sent_at' => now()->subDay()]);
+
+        $this->actingAs($admin)
+            ->get(route('training.quiz-results.index'))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('attempts', 3)
+                // Newest first by sent date.
+                ->where('attempts.0.status', 'completed')
+                ->where('attempts.0.link', null)
+                ->where('attempts.1.status', 'in_progress')
+                ->where('attempts.1.link', route('quiz.show', $inProgress->token))
+                ->whereNot('attempts.1.started_at', null)
+                ->where('attempts.2.status', 'not_started')
+                ->where('attempts.2.link', route('quiz.show', $notStarted->token))
+                ->where('attempts.2.started_at', null)
+            );
+    }
+
+    public function test_quiz_result_details_for_an_unsubmitted_attempt_offer_the_link(): void
+    {
+        $this->withoutVite();
+        $admin = User::factory()->superAdmin()->create();
+        $quiz = Quiz::factory()->withQuestions()->create();
+        $attempt = QuizAttempt::factory()->started()->create(['quiz_id' => $quiz->id]);
+
+        $this->actingAs($admin)
+            ->get(route('training.quiz-results.show', $attempt))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('attempt.status', 'in_progress')
+                ->where('attempt.link', route('quiz.show', $attempt->token))
+                ->where('attempt.score', null)
+                ->where('attempt.correct_count', null)
             );
     }
 

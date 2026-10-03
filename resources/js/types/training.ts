@@ -85,10 +85,15 @@ export type QuizQuestion = {
     options: QuizQuestionOption[];
 };
 
-/** A station's quiz as authored in the Content Builder. */
+/**
+ * The live version of a station's quiz, as authored in the Content Builder.
+ * Once `attempts_count` > 0 the version is frozen: edits create the next one.
+ */
 export type Quiz = {
     id: number;
     section_id: number;
+    version: number;
+    attempts_count: number;
     questions: QuizQuestion[];
 };
 
@@ -105,6 +110,9 @@ export const IMPORTANCE_OPTIONS: { value: Importance; label: string }[] = [
 ];
 
 export type StoreOption = { id: number; name: string };
+
+/** An enabled trainee position, e.g. { value: 'Crew Member', label: 'CM – Crew Member' }. */
+export type PositionOption = { value: string; label: string };
 
 export type StoreSwitcherContext = {
     canChoose: boolean;
@@ -170,7 +178,7 @@ export type ProgressCategory = {
     items: EvaluationItem[];
 };
 
-export type QuizAttemptStatus = 'sent' | 'completed';
+export type QuizAttemptStatus = 'not_started' | 'in_progress' | 'completed';
 
 /**
  * A section's quiz status as seen from the trainee page — deliberately
@@ -178,12 +186,17 @@ export type QuizAttemptStatus = 'sent' | 'completed';
  * for any manager who can view this trainee, not just admins.
  */
 export type SectionQuiz = {
+    /** The live version's id — what "Send quiz" sends. */
     id: number;
+    version: number;
     questions_count: number;
+    /** The latest link was sent for an older version than the live one. */
+    is_outdated: boolean;
     attempt: {
         status: QuizAttemptStatus;
         link: string | null;
         flagged: boolean;
+        version: number;
     } | null;
 };
 
@@ -210,11 +223,22 @@ export type RoleValue = 'super_admin' | 'manager';
 
 export type RoleOption = { value: RoleValue; label: string };
 
+/** Mirrors App\Enums\Permission — abilities a super admin can grant a manager. */
+export type PermissionValue = 'share_quiz_links';
+
+export type PermissionOption = {
+    value: PermissionValue;
+    label: string;
+    description: string;
+};
+
 export type AdminUserRow = {
     id: number;
     name: string;
     email: string;
     role: RoleValue;
+    /** Explicitly granted permissions. Always empty for super admins, who hold them all. */
+    permissions: PermissionValue[];
     stores: StoreOption[];
     joined: string | null;
 };
@@ -330,10 +354,14 @@ export type QuizAttemptRow = {
     trainee: { id: number; name: string };
     store: StoreOption;
     section: { id: number; title: string };
+    version: number;
     status: QuizAttemptStatus;
     flagged: boolean;
     score: number | null;
+    /** The shareable link — only while the attempt is still open. */
+    link: string | null;
     sent_at: string;
+    started_at: string | null;
     completed_at: string | null;
 };
 
@@ -349,15 +377,24 @@ export type QuizResultQuestion = {
     id: number;
     prompt: string;
     type: QuizQuestionType;
+    /** Chosen set exactly matches the correct set (same rule as the score). */
+    is_correct: boolean;
     options: QuizResultOption[];
 };
 
 export type QuizResultDetail = {
     id: number;
     trainee: { id: number; name: string };
+    store: StoreOption;
     section: { id: number; title: string };
+    version: number;
     status: QuizAttemptStatus;
+    flagged: boolean;
     score: number | null;
+    correct_count: number | null;
+    questions_count: number;
+    link: string | null;
     sent_at: string;
+    started_at: string | null;
     completed_at: string | null;
 };

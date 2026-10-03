@@ -8,13 +8,27 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Each step checks first, so the migration can simply be run again if a
+     * previous attempt stopped partway (MySQL can't roll schema changes back).
      */
     public function up(): void
     {
-        Schema::table('trainees', function (Blueprint $table) {
-            $table->string('development_status')->nullable()->after('needs_development')->index();
-        });
+        if (! Schema::hasColumn('trainees', 'development_status')) {
+            Schema::table('trainees', function (Blueprint $table) {
+                $table->string('development_status')->nullable()->after('needs_development');
+            });
+        }
+
+        if (! Schema::hasIndex('trainees', ['development_status'])) {
+            Schema::table('trainees', function (Blueprint $table) {
+                $table->index('development_status');
+            });
+        }
+
+        // Already converted and dropped by an earlier run.
+        if (! Schema::hasColumn('trainees', 'needs_development')) {
+            return;
+        }
 
         DB::table('trainees')
             ->where('needs_development', true)
@@ -48,7 +62,9 @@ return new class extends Migration
             ->whereNotNull('development_status')
             ->update(['needs_development' => true]);
 
+        // SQLite refuses to drop a column that still has an index on it.
         Schema::table('trainees', function (Blueprint $table) {
+            $table->dropIndex(['development_status']);
             $table->dropColumn('development_status');
         });
     }

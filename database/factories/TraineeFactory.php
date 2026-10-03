@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\DevelopmentStatus;
+use App\Enums\Position;
 use App\Models\Store;
 use App\Models\Trainee;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -22,7 +23,7 @@ class TraineeFactory extends Factory
         return [
             'store_id' => Store::factory(),
             'name' => fake()->name(),
-            'position' => fake()->randomElement(['Crew Member', 'Shift Lead', 'Cashier', 'Cook']),
+            'position' => fake()->randomElement([Position::CrewMember, Position::CrewLeader])->value,
             'hired_at' => fake()->dateTimeBetween('-1 year', 'now'),
             'created_by' => null,
         ];

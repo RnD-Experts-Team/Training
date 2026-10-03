@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\QuizAttemptStatus;
 use Database\Factories\QuizAttemptFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property int $trainee_id
  * @property string $token
  * @property Carbon $sent_at
+ * @property Carbon|null $started_at
  * @property Carbon|null $completed_at
  * @property int|null $score
  * @property Carbon|null $wrong_recipient_reported_at
@@ -34,7 +36,7 @@ class QuizAttempt extends Model
 
     /** @var list<string> */
     protected $fillable = [
-        'quiz_id', 'trainee_id', 'token', 'sent_at', 'completed_at', 'score', 'wrong_recipient_reported_at',
+        'quiz_id', 'trainee_id', 'token', 'sent_at', 'started_at', 'completed_at', 'score', 'wrong_recipient_reported_at',
     ];
 
     /**
@@ -44,6 +46,7 @@ class QuizAttempt extends Model
     {
         return [
             'sent_at' => 'datetime',
+            'started_at' => 'datetime',
             'completed_at' => 'datetime',
             'wrong_recipient_reported_at' => 'datetime',
         ];
@@ -76,6 +79,15 @@ class QuizAttempt extends Model
     public function isCompleted(): bool
     {
         return $this->completed_at !== null;
+    }
+
+    public function status(): QuizAttemptStatus
+    {
+        return match (true) {
+            $this->isCompleted() => QuizAttemptStatus::Completed,
+            $this->started_at !== null => QuizAttemptStatus::InProgress,
+            default => QuizAttemptStatus::NotStarted,
+        };
     }
 
     /**

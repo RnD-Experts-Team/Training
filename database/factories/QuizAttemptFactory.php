@@ -28,9 +28,17 @@ class QuizAttemptFactory extends Factory
         ];
     }
 
+    public function started(): static
+    {
+        return $this->state([
+            'started_at' => now(),
+        ]);
+    }
+
     public function completed(int $score = 100): static
     {
         return $this->state([
+            'started_at' => now(),
             'completed_at' => now(),
             'score' => $score,
         ]);

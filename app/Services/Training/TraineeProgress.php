@@ -76,10 +76,11 @@ class TraineeProgress
     /**
      * The full section tree with each item's evaluation merged in, plus the
      * current step (first incomplete leaf in order) and headline stats.
+     * Pending quiz links are only included when the viewer may share them.
      *
      * @return array{sections: array<int, mixed>, currentStepId: int|null, stats: array{completed: int, total: int, average_rating: float|null}}
      */
-    public function detail(Trainee $trainee): array
+    public function detail(Trainee $trainee, bool $canShareQuizLinks = false): array
     {
         $sections = Section::ordered()->published()->with([
             'categories' => fn ($query) => $query->orderBy('order'),
@@ -90,7 +91,14 @@ class TraineeProgress
         ])->get();
 
         $evaluations = $trainee->evaluations()->get()->keyBy('checklist_item_id');
-        $quizAttempts = $trainee->quizAttempts()->get()->keyBy('quiz_id');
+        // The trainee's most recent link per station, across every version of
+        // that station's quiz (newest version first, then newest link).
+        $quizAttempts = $trainee->quizAttempts()
+            ->with('quiz:id,section_id,version')
+            ->get()
+            ->sortByDesc(fn (QuizAttempt $attempt): array => [$attempt->quiz->version, $attempt->sent_at->getTimestamp()])
+            ->unique(fn (QuizAttempt $attempt): int => $attempt->quiz->section_id)
+            ->keyBy(fn (QuizAttempt $attempt): int => $attempt->quiz->section_id);
         $currentStepId = null;
 
         $mapItem = function (ChecklistItem $item) use (&$mapItem, $evaluations, &$currentStepId): array {
@@ -139,7 +147,7 @@ class TraineeProgress
             ? null
             : round(array_sum($ratings) / count($ratings), 1);
 
-        $sectionsData = $sections->map(function (Section $section) use ($mapItem, $collectRatings, $average, $quizAttempts): array {
+        $sectionsData = $sections->map(function (Section $section) use ($mapItem, $collectRatings, $average, $quizAttempts, $canShareQuizLinks): array {
             $sectionRatings = [];
 
             $categories = $section->categories->map(function (Category $category) use ($mapItem, $collectRatings, $average, &$sectionRatings): array {
@@ -166,7 +174,7 @@ class TraineeProgress
                 'hands_on_shifts' => $section->hands_on_shifts,
                 'average_rating' => $average($sectionRatings),
                 'categories' => $categories,
-                'quiz' => $this->quizStatus($section, $quizAttempts),
+                'quiz' => $this->quizStatus($section, $quizAttempts, $canShareQuizLinks),
             ];
         })->all();
 
@@ -180,14 +188,18 @@ class TraineeProgress
     /**
      * A section's quiz status for the trainee page — safe for any viewer
      * (assigned manager or super admin) since it never includes the score or
-     * answers, only whether it's been sent/completed and the shareable link
-     * while still pending. Full results live only in the training-team-only
-     * Quiz Results view.
+     * answers, only whether it's been sent/completed. The shareable link is
+     * included only while pending, and only for viewers allowed to share it.
+     * Full results live only in the training-team-only Quiz Results view.
      *
-     * @param  Collection<int, QuizAttempt>  $attemptsByQuizId
-     * @return array{id: int, questions_count: int, attempt: array{status: string, link: string|null, flagged: bool}|null}|null
+     * `attempt` is the trainee's latest link for this station, whichever
+     * version it was sent for; `is_outdated` means the quiz has been edited
+     * since, so a link for the current version can be sent.
+     *
+     * @param  Collection<int, QuizAttempt>  $latestAttemptBySectionId
+     * @return array{id: int, version: int, questions_count: int, is_outdated: bool, attempt: array{status: 'not_started'|'in_progress'|'completed', link: string|null, flagged: bool, version: int}|null}|null
      */
-    private function quizStatus(Section $section, Collection $attemptsByQuizId): ?array
+    private function quizStatus(Section $section, Collection $latestAttemptBySectionId, bool $canShareQuizLinks): ?array
     {
         $quiz = $section->quiz;
 
@@ -195,15 +207,18 @@ class TraineeProgress
             return null;
         }
 
-        $attempt = $attemptsByQuizId->get($quiz->id);
+        $attempt = $latestAttemptBySectionId->get($section->id);
 
         return [
             'id' => $quiz->id,
+            'version' => $quiz->version,
             'questions_count' => $quiz->questions->count(),
+            'is_outdated' => $attempt !== null && $attempt->quiz_id !== $quiz->id,
             'attempt' => $attempt ? [
-                'status' => $attempt->isCompleted() ? 'completed' : 'sent',
-                'link' => $attempt->isCompleted() ? null : route('quiz.show', $attempt->token),
+                'status' => $attempt->status()->value,
+                'link' => $canShareQuizLinks && ! $attempt->isCompleted() ? route('quiz.show', $attempt->token) : null,
                 'flagged' => $attempt->isFlaggedAsMisdirected(),
+                'version' => $attempt->quiz->version,
             ] : null,
         ];
     }

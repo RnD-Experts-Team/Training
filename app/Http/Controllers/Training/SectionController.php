@@ -49,6 +49,9 @@ class SectionController extends Controller
             'categories' => fn ($query) => $query->orderBy('order'),
             'categories.items.children.media',
             'categories.items.media',
+            // How many links the live version has been sent as — edits after
+            // that create a new version (see ReviseQuiz).
+            'quiz' => fn ($query) => $query->withCount('attempts'),
             'quiz.questions.options',
         ]);
 

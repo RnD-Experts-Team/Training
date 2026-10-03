@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react';
 import {
     CheckCircle2,
     FileQuestion,
+    History,
     Info,
     Pencil,
     Plus,
@@ -24,7 +25,9 @@ const MIN_TO_SEND = 3;
 
 /**
  * The optional quiz block on a station's builder page. A station has at
- * most one quiz, capped at 5 short multiple-choice questions.
+ * most one live quiz, capped at 5 short multiple-choice questions. Once a
+ * version has been sent, edits save as the next version so links already
+ * shared (and their results) keep the questions they were sent with.
  */
 export function QuizManager({
     sectionId,
@@ -40,7 +43,7 @@ export function QuizManager({
                 <div>
                     <p className="text-sm font-medium">No quiz yet</p>
                     <p className="text-sm text-muted-foreground">
-                        Add a short 3–5 question check trainees complete after
+                        Add a short 3-5 question check trainees complete after
                         this station.
                     </p>
                 </div>
@@ -60,6 +63,8 @@ export function QuizManager({
         );
     }
 
+    const isSent = quiz.attempts_count > 0;
+
     return (
         <section className="surface-tray">
             <div className="surface-core overflow-hidden">
@@ -72,8 +77,11 @@ export function QuizManager({
                             />
                         </div>
                         <div>
-                            <h3 className="font-semibold tracking-tight">
+                            <h3 className="flex items-center gap-2 font-semibold tracking-tight">
                                 Quiz
+                                <span className="rounded-md border border-border/60 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground tabular-nums">
+                                    v{quiz.version}
+                                </span>
                             </h3>
                             <div className="flex items-center gap-1.5">
                                 <div className="flex items-center gap-0.5">
@@ -116,7 +124,12 @@ export function QuizManager({
                         />
                         <ConfirmDeleteDialog
                             title="Remove quiz?"
-                            description="This permanently deletes the quiz, its questions, and any sent or completed results for it."
+                            description={
+                                isSent
+                                    ? 'Trainees will no longer be sent this quiz. Links already sent and their results are kept in Quiz Results.'
+                                    : 'This deletes the quiz and its questions. It has not been sent to anyone yet.'
+                            }
+                            confirmLabel="Remove quiz"
                             onConfirm={(close) =>
                                 router.delete(destroyQuiz(quiz.id).url, {
                                     preserveScroll: true,
@@ -135,6 +148,20 @@ export function QuizManager({
                         />
                     </div>
                 </header>
+
+                {isSent && (
+                    <div className="flex items-start gap-2 border-b border-border/60 bg-muted/30 px-4 py-2.5 text-xs text-muted-foreground">
+                        <History className="mt-px size-3.5 shrink-0" />
+                        <span>
+                            Version {quiz.version} has been sent to{' '}
+                            {quiz.attempts_count}{' '}
+                            {quiz.attempts_count === 1 ? 'trainee' : 'trainees'}
+                            . Your next change saves as version{' '}
+                            {quiz.version + 1}; links already sent keep version{' '}
+                            {quiz.version}.
+                        </span>
+                    </div>
+                )}
 
                 {quiz.questions.length === 0 ? (
                     <p className="p-6 text-center text-sm text-muted-foreground">

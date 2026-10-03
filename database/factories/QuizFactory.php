@@ -19,7 +19,13 @@ class QuizFactory extends Factory
     {
         return [
             'section_id' => Section::factory(),
+            'version' => 1,
         ];
+    }
+
+    public function retired(): static
+    {
+        return $this->state(['retired_at' => now()]);
     }
 
     /**

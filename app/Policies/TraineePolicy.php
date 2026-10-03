@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\Permission;
 use App\Models\Trainee;
 use App\Models\User;
 
@@ -72,6 +73,18 @@ class TraineePolicy
     public function assignManagers(User $user, Trainee $trainee): bool
     {
         return false;
+    }
+
+    /**
+     * Generating and copying a trainee's quiz link is reserved for super
+     * admins (handled by Gate::before). A manager may only do it once a super
+     * admin has granted them the permission, and only for an active trainee
+     * they're assigned to.
+     */
+    public function shareQuizLink(User $user, Trainee $trainee): bool
+    {
+        return $user->hasPermission(Permission::ShareQuizLinks)
+            && $this->update($user, $trainee);
     }
 
     /**

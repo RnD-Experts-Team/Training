@@ -11,6 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Safe to run again if an earlier attempt stopped after adding it.
+        if (Schema::hasColumn('quiz_attempts', 'wrong_recipient_reported_at')) {
+            return;
+        }
+
         Schema::table('quiz_attempts', function (Blueprint $table): void {
             $table->timestamp('wrong_recipient_reported_at')->nullable()->after('score');
         });
