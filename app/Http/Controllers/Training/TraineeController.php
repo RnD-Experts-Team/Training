@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Training;
 
+use App\Enums\Position;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Training\StoreTraineeRequest;
 use App\Http\Requests\Training\TraineeRequest;
 use App\Models\Store;
 use App\Models\Trainee;
@@ -71,10 +73,11 @@ class TraineeController extends Controller
         return Inertia::render('training/trainees/create', [
             'stores' => $stores,
             'canChooseStore' => $request->user()->isSuperAdmin() || $stores->count() > 1,
+            'positionOptions' => Position::options(),
         ]);
     }
 
-    public function store(TraineeRequest $request): RedirectResponse
+    public function store(StoreTraineeRequest $request): RedirectResponse
     {
         $this->authorize('create', Trainee::class);
 
@@ -123,6 +126,7 @@ class TraineeController extends Controller
 
         $trainee->load('store', 'managers:id,name', 'archivedBy:id,name');
         $isSuperAdmin = $request->user()->isSuperAdmin();
+        $canShareQuizLinks = $request->user()->can('shareQuizLink', $trainee);
 
         return Inertia::render('training/trainees/show', [
             'trainee' => [
@@ -135,7 +139,8 @@ class TraineeController extends Controller
                 'archived_at' => $trainee->archived_at?->toIso8601String(),
                 'archived_by' => $trainee->archivedBy?->only(['id', 'name']),
             ],
-            'progress' => $progress->detail($trainee),
+            'progress' => $progress->detail($trainee, $canShareQuizLinks),
+            'canShareQuizLinks' => $canShareQuizLinks,
             'canManage' => $request->user()->can('update', $trainee),
             'canDelete' => $request->user()->can('delete', $trainee),
             'canAssignManagers' => $isSuperAdmin,
@@ -154,10 +159,27 @@ class TraineeController extends Controller
 
         $stores = $this->assignableStores($request->user());
 
+        $positionOptions = Position::options();
+
+        // A position from before the fixed list (or one since switched off)
+        // stays selectable for this trainee, so saving other changes keeps it.
+        if ($trainee->position !== null && ! in_array($trainee->position, array_column($positionOptions, 'value'), true)) {
+            $positionOptions[] = [
+                'value' => $trainee->position,
+                'label' => __(':position (current, not in the list)', ['position' => $trainee->position]),
+            ];
+        }
+
         return Inertia::render('training/trainees/edit', [
-            'trainee' => $trainee->only(['id', 'name', 'position', 'hired_at', 'store_id']),
+            'trainee' => [
+                ...$trainee->only(['id', 'name', 'position', 'store_id']),
+                // A plain Y-m-d; the date cast would otherwise send a full
+                // timestamp the date picker can't read.
+                'hired_at' => $trainee->hired_at?->toDateString(),
+            ],
             'stores' => $stores,
             'canChooseStore' => $request->user()->isSuperAdmin() || $stores->count() > 1,
+            'positionOptions' => $positionOptions,
         ]);
     }
 

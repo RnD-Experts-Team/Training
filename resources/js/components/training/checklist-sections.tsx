@@ -97,12 +97,14 @@ export function ChecklistSections({
     traineeId,
     traineeName,
     readOnly = false,
+    canShareQuizLinks = false,
     currentStepId = null,
 }: {
     sections: ProgressSection[];
     traineeId: number;
     traineeName: string;
     readOnly?: boolean;
+    canShareQuizLinks?: boolean;
     currentStepId?: number | null;
 }) {
     // Single-open accordions; the current step's section + category open first.
@@ -181,6 +183,7 @@ export function ChecklistSections({
                                         traineeName={traineeName}
                                         quiz={section.quiz}
                                         readOnly={readOnly}
+                                        canShare={canShareQuizLinks}
                                     />
                                 )}
                             </CollapsibleContent>

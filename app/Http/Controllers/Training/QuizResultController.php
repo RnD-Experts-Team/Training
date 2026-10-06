@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Training;
 
 use App\Http\Controllers\Controller;
 use App\Models\QuizAttempt;
+use App\Models\QuizQuestion;
+use App\Models\QuizQuestionOption;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -29,10 +31,13 @@ class QuizResultController extends Controller
                 'trainee' => $attempt->trainee->only(['id', 'name']),
                 'store' => $attempt->trainee->store->only(['id', 'name']),
                 'section' => $attempt->quiz->section->only(['id', 'title']),
-                'status' => $attempt->isCompleted() ? 'completed' : 'sent',
+                'version' => $attempt->quiz->version,
+                'status' => $attempt->status()->value,
                 'flagged' => $attempt->isFlaggedAsMisdirected(),
                 'score' => $attempt->score,
+                'link' => $attempt->isCompleted() ? null : route('quiz.show', $attempt->token),
                 'sent_at' => $attempt->sent_at->toIso8601String(),
+                'started_at' => $attempt->started_at?->toIso8601String(),
                 'completed_at' => $attempt->completed_at?->toIso8601String(),
             ])->values(),
         ]);
@@ -45,7 +50,8 @@ class QuizResultController extends Controller
     public function show(QuizAttempt $attempt): Response
     {
         $attempt->load([
-            'trainee:id,name',
+            'trainee:id,name,store_id',
+            'trainee.store:id,name',
             'quiz.section:id,title',
             'quiz.questions.options',
             'answers',
@@ -53,31 +59,43 @@ class QuizResultController extends Controller
 
         $answersByQuestion = $attempt->answers->groupBy('quiz_question_id');
 
+        $questions = $attempt->quiz->questions->map(function (QuizQuestion $question) use ($answersByQuestion): array {
+            $chosenOptionIds = $answersByQuestion->get($question->id, collect())->pluck('quiz_question_option_id');
+            $correctOptionIds = $question->options->where('is_correct', true)->pluck('id');
+
+            return [
+                'id' => $question->id,
+                'prompt' => $question->prompt,
+                'type' => $question->type->value,
+                // Same exact-match rule the score was calculated with.
+                'is_correct' => $chosenOptionIds->sort()->values()->all() === $correctOptionIds->sort()->values()->all(),
+                'options' => $question->options->map(fn (QuizQuestionOption $option): array => [
+                    'id' => $option->id,
+                    'text' => $option->text,
+                    'is_correct' => $option->is_correct,
+                    'is_chosen' => $chosenOptionIds->contains($option->id),
+                ])->values(),
+            ];
+        })->values();
+
         return Inertia::render('training/quiz-results/show', [
             'attempt' => [
                 'id' => $attempt->id,
                 'trainee' => $attempt->trainee->only(['id', 'name']),
+                'store' => $attempt->trainee->store->only(['id', 'name']),
                 'section' => $attempt->quiz->section->only(['id', 'title']),
-                'status' => $attempt->isCompleted() ? 'completed' : 'sent',
+                'version' => $attempt->quiz->version,
+                'status' => $attempt->status()->value,
+                'flagged' => $attempt->isFlaggedAsMisdirected(),
                 'score' => $attempt->score,
+                'correct_count' => $attempt->isCompleted() ? $questions->where('is_correct', true)->count() : null,
+                'questions_count' => $questions->count(),
+                'link' => $attempt->isCompleted() ? null : route('quiz.show', $attempt->token),
                 'sent_at' => $attempt->sent_at->toIso8601String(),
+                'started_at' => $attempt->started_at?->toIso8601String(),
                 'completed_at' => $attempt->completed_at?->toIso8601String(),
             ],
-            'questions' => $attempt->quiz->questions->map(function ($question) use ($answersByQuestion): array {
-                $chosenOptionIds = $answersByQuestion->get($question->id, collect())->pluck('quiz_question_option_id');
-
-                return [
-                    'id' => $question->id,
-                    'prompt' => $question->prompt,
-                    'type' => $question->type->value,
-                    'options' => $question->options->map(fn ($option): array => [
-                        'id' => $option->id,
-                        'text' => $option->text,
-                        'is_correct' => $option->is_correct,
-                        'is_chosen' => $chosenOptionIds->contains($option->id),
-                    ])->values(),
-                ];
-            })->values(),
+            'questions' => $questions,
         ]);
     }
 

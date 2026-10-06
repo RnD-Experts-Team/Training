@@ -31,6 +31,7 @@ export default function TraineeShow() {
     const {
         trainee,
         progress,
+        canShareQuizLinks,
         canManage,
         canDelete,
         canAssignManagers,
@@ -38,6 +39,7 @@ export default function TraineeShow() {
     } = usePage<{
         trainee: TraineeDetail;
         progress: TraineeProgressData;
+        canShareQuizLinks: boolean;
         canManage: boolean;
         canDelete: boolean;
         canAssignManagers: boolean;
@@ -229,6 +231,7 @@ export default function TraineeShow() {
                     traineeId={trainee.id}
                     traineeName={trainee.name}
                     readOnly={isArchived}
+                    canShareQuizLinks={canShareQuizLinks}
                     currentStepId={progress.currentStepId}
                 />
             </div>

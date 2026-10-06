@@ -45,6 +45,22 @@ class PublicQuizController extends Controller
     }
 
     /**
+     * The person opening this link confirmed it's meant for them — mark the
+     * attempt as started (once) so the training team can see it's in
+     * progress. Link previews only ever GET, so they never count as a start.
+     */
+    public function start(string $token): RedirectResponse
+    {
+        $attempt = QuizAttempt::where('token', $token)->firstOrFail();
+
+        if (! $attempt->isCompleted() && $attempt->started_at === null) {
+            $attempt->update(['started_at' => now()]);
+        }
+
+        return to_route('quiz.show', $token);
+    }
+
+    /**
      * The person opening this link said it isn't meant for them — flag it so
      * the training team can tell the manager sent it to the wrong employee.
      * Doesn't touch completion/score; the link stays valid for whoever it
@@ -81,10 +97,19 @@ class PublicQuizController extends Controller
 
         $data = $request->validate($rules);
 
-        $correct = 0;
         $total = $attempt->quiz->questions->count();
 
-        DB::transaction(function () use ($attempt, $data, &$correct): void {
+        DB::transaction(function () use ($attempt, $data, $total): void {
+            // Re-check under a lock: two quick submits must not both score the
+            // attempt, and a completed link must never take answers again.
+            $locked = QuizAttempt::whereKey($attempt->id)->lockForUpdate()->first();
+
+            if ($locked === null || $locked->isCompleted()) {
+                abort(404);
+            }
+
+            $correct = 0;
+
             foreach ($attempt->quiz->questions as $question) {
                 $chosenIds = collect($data['answers'][$question->id])->map(fn ($id): int => (int) $id)->sort()->values();
                 $correctIds = $question->options->where('is_correct', true)->pluck('id')->sort()->values();
@@ -101,12 +126,13 @@ class PublicQuizController extends Controller
                     ]);
                 }
             }
-        });
 
-        $attempt->update([
-            'completed_at' => now(),
-            'score' => $total > 0 ? (int) round($correct / $total * 100) : 0,
-        ]);
+            $locked->update([
+                'started_at' => $locked->started_at ?? now(),
+                'completed_at' => now(),
+                'score' => $total > 0 ? (int) round($correct / $total * 100) : 0,
+            ]);
+        });
 
         return to_route('quiz.show', $token);
     }

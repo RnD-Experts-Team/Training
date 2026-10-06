@@ -65,11 +65,24 @@ class Section extends Model
     }
 
     /**
+     * The live version of this station's quiz, if it has one.
+     *
      * @return HasOne<Quiz, $this>
      */
     public function quiz(): HasOne
     {
-        return $this->hasOne(Quiz::class);
+        return $this->hasOne(Quiz::class)->whereNull('retired_at');
+    }
+
+    /**
+     * Every version of this station's quiz, including retired ones kept for
+     * their links and results.
+     *
+     * @return HasMany<Quiz, $this>
+     */
+    public function quizVersions(): HasMany
+    {
+        return $this->hasMany(Quiz::class);
     }
 
     /**
