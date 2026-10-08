@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import type {
     DevelopmentPickerSection,
     DevelopmentPlanData,
+    SkillRating,
 } from '@/types/training';
 
 export function DevelopmentPlanPanel({
@@ -14,12 +15,14 @@ export function DevelopmentPlanPanel({
     traineeName,
     plan,
     picker,
+    skillRatings = [],
     readOnly,
 }: {
     traineeId: number;
     traineeName: string;
     plan: DevelopmentPlanData;
     picker: DevelopmentPickerSection[];
+    skillRatings?: SkillRating[];
     readOnly: boolean;
 }) {
     const selectedIds = plan.sections.flatMap((section) =>
@@ -27,6 +30,38 @@ export function DevelopmentPlanPanel({
             category.items.map((item) => item.id),
         ),
     );
+    const isEmpty = plan.sections.length === 0;
+
+    const planPicker = (label: string) => (
+        <DevelopmentPlanPicker
+            traineeId={traineeId}
+            sections={picker}
+            selectedIds={selectedIds}
+            skillRatings={skillRatings}
+            trigger={
+                <Button variant="outline" size="sm">
+                    <ListChecks className="size-4" /> {label}
+                </Button>
+            }
+        />
+    );
+
+    if (isEmpty) {
+        return (
+            <Card className="flex flex-col items-center justify-center gap-3 border-dashed p-10 text-center shadow-none">
+                <Target className="size-8 text-muted-foreground" />
+                <div className="space-y-1">
+                    <p className="text-sm font-medium">No plan yet</p>
+                    <p className="max-w-md text-sm text-muted-foreground">
+                        {readOnly
+                            ? 'An admin will pick the specific tasks this employee should focus on.'
+                            : 'Pick a few specific tasks from the curriculum to focus on. Saving the plan makes it Active.'}
+                    </p>
+                </div>
+                {!readOnly && planPicker('Build plan')}
+            </Card>
+        );
+    }
 
     return (
         <div className="space-y-4">
@@ -41,36 +76,15 @@ export function DevelopmentPlanPanel({
                         total={plan.stats.total}
                     />
                 </div>
-                {!readOnly && (
-                    <DevelopmentPlanPicker
-                        traineeId={traineeId}
-                        sections={picker}
-                        selectedIds={selectedIds}
-                        trigger={
-                            <Button variant="outline" size="sm">
-                                <ListChecks className="size-4" /> Edit plan
-                            </Button>
-                        }
-                    />
-                )}
+                {!readOnly && planPicker('Edit plan')}
             </div>
 
-            {plan.sections.length === 0 ? (
-                <Card className="flex flex-col items-center justify-center gap-3 border-dashed p-10 text-center">
-                    <Target className="size-8 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                        No items in this plan yet. Pick a few specific tasks
-                        from the curriculum to focus on.
-                    </p>
-                </Card>
-            ) : (
-                <ChecklistSections
-                    sections={plan.sections}
-                    traineeId={traineeId}
-                    traineeName={traineeName}
-                    readOnly={readOnly}
-                />
-            )}
+            <ChecklistSections
+                sections={plan.sections}
+                traineeId={traineeId}
+                traineeName={traineeName}
+                readOnly={readOnly}
+            />
         </div>
     );
 }

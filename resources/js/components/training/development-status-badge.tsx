@@ -3,15 +3,15 @@ import { cn } from '@/lib/utils';
 import { DEVELOPMENT_STATUS_LABELS } from '@/types/training';
 import type { DevelopmentStatus } from '@/types/training';
 
-const TEXT_STYLES: Record<DevelopmentStatus, string> = {
-    pending: 'text-amber-600 dark:text-amber-400',
-    active: 'text-blue-600 dark:text-blue-400',
-    completed: 'text-emerald-600 dark:text-emerald-400',
+const DOT_STYLES: Record<DevelopmentStatus, string> = {
+    pending: 'bg-amber-500',
+    active: 'bg-blue-500',
+    completed: 'bg-emerald-500',
 };
 
 /**
  * A quiet outline chip showing a trainee's place in the Development Zone
- * lifecycle (Pending → Active → Completed).
+ * lifecycle (Pending → Active → Completed). Only the dot carries color.
  */
 export function DevelopmentStatusBadge({
     status,
@@ -21,7 +21,14 @@ export function DevelopmentStatusBadge({
     className?: string;
 }) {
     return (
-        <Badge variant="outline" className={cn(TEXT_STYLES[status], className)}>
+        <Badge
+            variant="outline"
+            className={cn('gap-1.5 text-muted-foreground', className)}
+        >
+            <span
+                aria-hidden
+                className={cn('size-1.5 rounded-full', DOT_STYLES[status])}
+            />
             {DEVELOPMENT_STATUS_LABELS[status]}
         </Badge>
     );

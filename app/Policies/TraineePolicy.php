@@ -33,8 +33,7 @@ class TraineePolicy
     }
 
     /**
-     * A manager may update a trainee while active (including archiving
-     * them). Once a trainee is archived, they're history — only a super
+     * A manager may update a trainee while active. Once a trainee is archived, they're history — only a super
      * admin may make further changes (handled by Gate::before).
      */
     public function update(User $user, Trainee $trainee): bool
@@ -57,6 +56,29 @@ class TraineePolicy
         }
 
         return $this->isAssigned($user, $trainee);
+    }
+
+    /**
+     * Moving a trainee straight to the Archive is reserved for super admins
+     * (handled by Gate::before). A manager instead submits an archive
+     * request for an admin to approve — see requestArchive().
+     */
+    public function archive(User $user, Trainee $trainee): bool
+    {
+        return false;
+    }
+
+    /**
+     * A manager may ask for one of their active trainees to be archived, as
+     * long as an earlier request isn't still awaiting review.
+     */
+    public function requestArchive(User $user, Trainee $trainee): bool
+    {
+        if ($trainee->isArchived() || ! $this->isAssigned($user, $trainee)) {
+            return false;
+        }
+
+        return ! $trainee->archiveRequests()->pending()->exists();
     }
 
     /**
@@ -97,10 +119,28 @@ class TraineePolicy
     }
 
     /**
+     * Any manager may add a brand-new employee straight into the Development
+     * Zone (they're placed in one of the manager's own stores).
+     */
+    public function addDevelopmentEmployee(User $user): bool
+    {
+        return $user->isManager();
+    }
+
+    /**
      * Building or editing a trainee's development plan is an admin-only
      * judgment call, reserved for super admins (handled by Gate::before).
      */
     public function manageDevelopmentPlan(User $user, Trainee $trainee): bool
+    {
+        return false;
+    }
+
+    /**
+     * Reassessing an employee's stations to measure improvement is reserved
+     * for the training team (super admins, via Gate::before).
+     */
+    public function reassessDevelopment(User $user, Trainee $trainee): bool
     {
         return false;
     }

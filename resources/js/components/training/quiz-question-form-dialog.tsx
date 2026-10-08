@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
 import { store, update } from '@/routes/training/quiz-questions';
@@ -44,6 +45,7 @@ export function QuizQuestionFormDialog({
 
     const form = useForm({
         prompt: question?.prompt ?? '',
+        explanation: question?.explanation ?? '',
         type: (question?.type ?? 'single') as QuizQuestionType,
         options: sortedOptions?.map((option) => option.text) ?? [
             '',
@@ -105,6 +107,8 @@ export function QuizQuestionFormDialog({
 
         form.transform((data) => ({
             prompt: data.prompt,
+            explanation:
+                data.explanation.trim() === '' ? null : data.explanation,
             type: data.type,
             options: data.options,
             ...(data.type === 'single'
@@ -127,7 +131,7 @@ export function QuizQuestionFormDialog({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>{trigger}</DialogTrigger>
-            <DialogContent className="sm:max-w-xl">
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle>
                         {question ? 'Edit question' : 'New question'}
@@ -274,6 +278,39 @@ export function QuizQuestionFormDialog({
                                         string | undefined
                                     >
                                 ).correct_indexes
+                            }
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="explanation">
+                            Explanation{' '}
+                            <span className="font-normal text-muted-foreground">
+                                (optional)
+                            </span>
+                        </Label>
+                        <Textarea
+                            id="explanation"
+                            value={form.data.explanation}
+                            onChange={(e) =>
+                                form.setData('explanation', e.target.value)
+                            }
+                            placeholder="e.g. Raw chicken always goes on the bottom shelf so it can't drip onto ready-to-eat food."
+                            rows={3}
+                            maxLength={1000}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Shown to the trainee with the correct answer right
+                            after they submit.
+                        </p>
+                        <InputError
+                            message={
+                                (
+                                    form.errors as Record<
+                                        string,
+                                        string | undefined
+                                    >
+                                ).explanation
                             }
                         />
                     </div>

@@ -264,6 +264,58 @@ class ReportAnalyticsTest extends TestCase
         $this->assertSame(70.0, $overview['average_score']); // other store excluded
     }
 
+    public function test_super_admin_can_combine_several_stores(): void
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $storeA = Store::factory()->create();
+        $storeB = Store::factory()->create();
+        $storeC = Store::factory()->create();
+        [$a] = $this->items(1);
+
+        $this->evaluate(Trainee::factory()->forStore($storeA)->create(), $a, rating: 80);
+        $this->evaluate(Trainee::factory()->forStore($storeB)->create(), $a, rating: 40);
+        $this->evaluate(Trainee::factory()->forStore($storeC)->create(), $a, rating: 10);
+
+        $scope = $this->analytics()->for($admin, ['stores' => [$storeA->id, $storeB->id]]);
+        $overview = $this->analytics()->overview($scope);
+
+        $this->assertSame([$storeA->id, $storeB->id], $scope->storeIds);
+        $this->assertSame(2, $overview['trainees']);
+        $this->assertSame(60.0, $overview['average_score']);
+        $this->assertEqualsCanonicalizing(
+            [$storeA->id, $storeB->id],
+            array_column($this->analytics()->storePerformance($scope), 'id'),
+        );
+    }
+
+    public function test_a_manager_cannot_add_stores_they_do_not_manage_to_the_group(): void
+    {
+        $storeA = Store::factory()->create();
+        $storeB = Store::factory()->create();
+        $foreign = Store::factory()->create();
+        $manager = User::factory()->manager($storeA)->create();
+        $manager->stores()->attach($storeB);
+        [$a] = $this->items(1);
+
+        $this->evaluate(Trainee::factory()->forStore($storeA)->create(), $a, rating: 50);
+        $this->evaluate(Trainee::factory()->forStore($foreign)->create(), $a, rating: 90);
+
+        $scope = $this->analytics()->for($manager, ['stores' => [$storeA->id, $foreign->id]]);
+
+        $this->assertSame([$storeA->id], $scope->storeIds);
+        $this->assertSame(1, $this->analytics()->overview($scope)['trainees']);
+    }
+
+    public function test_unknown_stores_in_the_group_are_ignored(): void
+    {
+        $admin = User::factory()->superAdmin()->create();
+        $store = Store::factory()->create();
+
+        $scope = $this->analytics()->for($admin, ['stores' => [$store->id, 999999]]);
+
+        $this->assertSame([$store->id], $scope->storeIds);
+    }
+
     public function test_super_admin_can_filter_by_store(): void
     {
         $admin = User::factory()->superAdmin()->create();

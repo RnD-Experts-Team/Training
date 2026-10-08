@@ -20,6 +20,7 @@ const STORE_AWARE_PAGES = new Set([
     'training/trainees/index',
     'training/development-zone/index',
     'reports/index',
+    'training/quiz-results/index',
 ]);
 
 export function StoreSwitcher() {
@@ -36,6 +37,19 @@ export function StoreSwitcher() {
         (store) => store.id === selectedStoreId,
     );
 
+    // Reports can combine several stores; reflect that group here.
+    const reportStoreGroup =
+        page.component === 'reports/index'
+            ? ((page.props as { filters?: { stores?: number[] } }).filters
+                  ?.stores ?? [])
+            : [];
+    const triggerLabel =
+        reportStoreGroup.length > 1
+            ? `${reportStoreGroup.length} stores`
+            : current
+              ? current.name
+              : 'All stores';
+
     function selectStore(storeId: number | null) {
         setSelectedStoreId(storeId);
         setOpen(false);
@@ -45,6 +59,11 @@ export function StoreSwitcher() {
         }
 
         const url = new URL(window.location.href);
+
+        // Drop a Reports store group (`stores[]=…`) — the switcher picks one store.
+        [...url.searchParams.keys()]
+            .filter((key) => key.startsWith('stores'))
+            .forEach((key) => url.searchParams.delete(key));
 
         if (storeId) {
             url.searchParams.set('store', String(storeId));
@@ -65,9 +84,7 @@ export function StoreSwitcher() {
                 <DialogTrigger asChild>
                     <SidebarMenuButton tooltip="Switch store">
                         <Building2 />
-                        <span className="truncate">
-                            {current ? current.name : 'All stores'}
-                        </span>
+                        <span className="truncate">{triggerLabel}</span>
                         <ChevronsUpDown className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
                     </SidebarMenuButton>
                 </DialogTrigger>

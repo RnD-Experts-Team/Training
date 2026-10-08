@@ -67,7 +67,7 @@ class ReviseQuiz
         $copies = [];
 
         foreach ($quiz->questions()->with('options')->get() as $question) {
-            $copy = $next->questions()->create($question->only(['prompt', 'type', 'order']));
+            $copy = $next->questions()->create($question->only(['prompt', 'explanation', 'type', 'order']));
 
             foreach ($question->options as $option) {
                 $copy->options()->create($option->only(['text', 'is_correct', 'order']));

@@ -22,6 +22,8 @@ class QuizQuestionRequest extends FormRequest
 
         return [
             'prompt' => ['required', 'string', 'max:500'],
+            // Shown to the trainee on their results after they submit.
+            'explanation' => ['nullable', 'string', 'max:1000'],
             'type' => ['required', new Enum(QuizQuestionType::class)],
             'options' => ['required', 'array', 'size:4'],
             'options.*' => ['required', 'string', 'max:255'],

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Training\AssessmentQuestionController;
+use App\Http\Controllers\Training\AssessmentSkillController;
 use App\Http\Controllers\Training\CategoryController;
 use App\Http\Controllers\Training\ChecklistItemController;
 use App\Http\Controllers\Training\EvaluationController;
@@ -10,6 +12,7 @@ use App\Http\Controllers\Training\QuizController;
 use App\Http\Controllers\Training\QuizQuestionController;
 use App\Http\Controllers\Training\QuizResultController;
 use App\Http\Controllers\Training\SectionController;
+use App\Http\Controllers\Training\TraineeArchiveRequestController;
 use App\Http\Controllers\Training\TraineeController;
 use App\Http\Controllers\Training\TraineeDevelopmentController;
 use App\Http\Controllers\Training\TraineeManagerController;
@@ -65,10 +68,24 @@ Route::middleware(['auth', 'verified', 'super_admin'])
         Route::put('quiz-questions/{question}', [QuizQuestionController::class, 'update'])->name('quiz-questions.update');
         Route::delete('quiz-questions/{question}', [QuizQuestionController::class, 'destroy'])->name('quiz-questions.destroy');
 
+        // Development Zone assessment setup: stations & skills, and their questions
+        Route::get('assessment-setup', [AssessmentSkillController::class, 'index'])->name('assessment-setup');
+        Route::post('assessment-skills', [AssessmentSkillController::class, 'store'])->name('assessment-skills.store');
+        Route::put('assessment-skills/{skill}', [AssessmentSkillController::class, 'update'])->name('assessment-skills.update');
+        Route::delete('assessment-skills/{skill}', [AssessmentSkillController::class, 'destroy'])->name('assessment-skills.destroy');
+        Route::post('assessment-skills/{skill}/questions', [AssessmentQuestionController::class, 'store'])->name('assessment-questions.store');
+        Route::put('assessment-questions/{question}', [AssessmentQuestionController::class, 'update'])->name('assessment-questions.update');
+        Route::delete('assessment-questions/{question}', [AssessmentQuestionController::class, 'destroy'])->name('assessment-questions.destroy');
+
         // Quiz results — training team only, never the store manager.
         Route::get('quiz-results', [QuizResultController::class, 'index'])->name('quiz-results.index');
         Route::get('quiz-results/{attempt}', [QuizResultController::class, 'show'])->name('quiz-results.show');
         Route::delete('quiz-results/{attempt}', [QuizResultController::class, 'destroy'])->name('quiz-results.destroy');
+
+        // Archive requests — managers ask, the training team decides.
+        Route::get('archive-requests', [TraineeArchiveRequestController::class, 'index'])->name('archive-requests.index');
+        Route::patch('archive-requests/{archiveRequest}/approve', [TraineeArchiveRequestController::class, 'approve'])->name('archive-requests.approve');
+        Route::patch('archive-requests/{archiveRequest}/reject', [TraineeArchiveRequestController::class, 'reject'])->name('archive-requests.reject');
     });
 
 /*
@@ -76,17 +93,23 @@ Route::middleware(['auth', 'verified', 'super_admin'])
  */
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('development-zone', [TraineeDevelopmentController::class, 'index'])->name('development-zone.index');
+    Route::get('development-zone/create', [TraineeDevelopmentController::class, 'create'])->name('development-zone.create');
+    Route::post('development-zone/employees', [TraineeDevelopmentController::class, 'storeEmployee'])->name('development-zone.employees.store');
     Route::get('development-zone/{trainee}', [TraineeDevelopmentController::class, 'show'])->name('development-zone.show');
+    Route::get('development-zone/{trainee}/reassess', [TraineeDevelopmentController::class, 'reassess'])->name('development-zone.reassess');
 
     Route::resource('trainees', TraineeController::class);
 
     Route::patch('trainees/{trainee}/archive', [TraineeController::class, 'archive'])->name('trainees.archive');
     Route::patch('trainees/{trainee}/restore', [TraineeController::class, 'restore'])->name('trainees.restore');
+    Route::post('trainees/{trainee}/archive-requests', [TraineeArchiveRequestController::class, 'store'])->name('trainees.archive-requests.store');
 
     Route::post('trainees/{trainee}/development-zone', [TraineeDevelopmentController::class, 'store'])->name('trainees.development.store');
     Route::delete('trainees/{trainee}/development-zone', [TraineeDevelopmentController::class, 'destroy'])->name('trainees.development.destroy');
     Route::put('trainees/{trainee}/development-plan', [TraineeDevelopmentController::class, 'updatePlan'])->name('trainees.development.update');
+    Route::post('trainees/{trainee}/development-reassessment', [TraineeDevelopmentController::class, 'storeReassessment'])->name('trainees.development.reassess');
     Route::patch('trainees/{trainee}/development-complete', [TraineeDevelopmentController::class, 'complete'])->name('trainees.development.complete');
+    Route::patch('trainees/{trainee}/development-reopen', [TraineeDevelopmentController::class, 'reopen'])->name('trainees.development.reopen');
 
     Route::post('trainees/{trainee}/quiz-attempts', [QuizAttemptController::class, 'store'])->name('trainees.quiz-attempts.store');
 

@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Training;
 
 use App\Http\Controllers\Controller;
 use App\Models\QuizAttempt;
-use App\Models\QuizQuestion;
-use App\Models\QuizQuestionOption;
+use App\Models\Store;
+use App\Services\Training\QuizAttemptBreakdown;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,10 +18,16 @@ class QuizResultController extends Controller
      * training team to track and follow up on. Kept out of the Manager's
      * reach entirely (super-admin-only route group), unlike the trainee
      * page's link/status, which any assigned manager can see.
+     *
+     * Follows the shared store filter (`?store=`) so results can be reviewed
+     * store by store; the quiz, result and status filters run client-side.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $storeId = $request->user()->resolveStoreFilter($request->integer('store') ?: null);
+
         $attempts = QuizAttempt::query()
+            ->when($storeId, fn ($query) => $query->whereHas('trainee', fn ($trainee) => $trainee->inStore($storeId)))
             ->with(['trainee:id,name,store_id', 'trainee.store:id,name', 'quiz.section:id,title'])
             ->orderByDesc('sent_at')
             ->get();
@@ -40,6 +47,8 @@ class QuizResultController extends Controller
                 'started_at' => $attempt->started_at?->toIso8601String(),
                 'completed_at' => $attempt->completed_at?->toIso8601String(),
             ])->values(),
+            'stores' => Store::orderBy('name')->get(['id', 'name']),
+            'filters' => ['store' => $storeId],
         ]);
     }
 
@@ -47,7 +56,7 @@ class QuizResultController extends Controller
      * One attempt's full question-by-question breakdown — answers and score
      * live only here.
      */
-    public function show(QuizAttempt $attempt): Response
+    public function show(QuizAttempt $attempt, QuizAttemptBreakdown $breakdown): Response
     {
         $attempt->load([
             'trainee:id,name,store_id',
@@ -57,26 +66,7 @@ class QuizResultController extends Controller
             'answers',
         ]);
 
-        $answersByQuestion = $attempt->answers->groupBy('quiz_question_id');
-
-        $questions = $attempt->quiz->questions->map(function (QuizQuestion $question) use ($answersByQuestion): array {
-            $chosenOptionIds = $answersByQuestion->get($question->id, collect())->pluck('quiz_question_option_id');
-            $correctOptionIds = $question->options->where('is_correct', true)->pluck('id');
-
-            return [
-                'id' => $question->id,
-                'prompt' => $question->prompt,
-                'type' => $question->type->value,
-                // Same exact-match rule the score was calculated with.
-                'is_correct' => $chosenOptionIds->sort()->values()->all() === $correctOptionIds->sort()->values()->all(),
-                'options' => $question->options->map(fn (QuizQuestionOption $option): array => [
-                    'id' => $option->id,
-                    'text' => $option->text,
-                    'is_correct' => $option->is_correct,
-                    'is_chosen' => $chosenOptionIds->contains($option->id),
-                ])->values(),
-            ];
-        })->values();
+        $questions = $breakdown->questions($attempt);
 
         return Inertia::render('training/quiz-results/show', [
             'attempt' => [
@@ -94,6 +84,7 @@ class QuizResultController extends Controller
                 'sent_at' => $attempt->sent_at->toIso8601String(),
                 'started_at' => $attempt->started_at?->toIso8601String(),
                 'completed_at' => $attempt->completed_at?->toIso8601String(),
+                'results_reviewed_at' => $attempt->results_reviewed_at?->toIso8601String(),
             ],
             'questions' => $questions,
         ]);

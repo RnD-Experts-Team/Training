@@ -2,33 +2,26 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     Check,
-    CheckCircle2,
-    CircleDot,
     Copy,
     Hourglass,
-    ListChecks,
     RotateCcw,
     ShieldAlert,
-    XCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 import { LocalTime } from '@/components/local-time';
 import { ConfirmDeleteDialog } from '@/components/training/confirm-delete-dialog';
+import { QuizQuestionResult } from '@/components/training/quiz-question-result';
 import { QuizStatusBadge } from '@/components/training/quiz-status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useClipboard } from '@/hooks/use-clipboard';
-import { OPTION_LETTERS, PASSING_SCORE, isPassingScore } from '@/lib/quiz';
+import { PASSING_SCORE, isPassingScore } from '@/lib/quiz';
 import { cn } from '@/lib/utils';
 import { destroy, index, show } from '@/routes/training/quiz-results';
 import type { BreadcrumbItem } from '@/types';
-import type {
-    QuizResultDetail,
-    QuizResultOption,
-    QuizResultQuestion,
-} from '@/types/training';
+import type { QuizResultDetail, QuizResultQuestion } from '@/types/training';
 
 type QuestionFilter = 'all' | 'incorrect';
 
@@ -167,10 +160,11 @@ export default function QuizResultShow() {
                         </div>
 
                         {visibleQuestions.map(({ question, number }) => (
-                            <QuestionResult
+                            <QuizQuestionResult
                                 key={question.id}
                                 question={question}
                                 number={number}
+                                viewer="admin"
                             />
                         ))}
                     </section>
@@ -276,16 +270,17 @@ function ScoreSummary({
     );
 }
 
-/** Link created → Opened → Submitted, with each step's timestamp. */
+/** Link created → Opened → Submitted → Results reviewed, with timestamps. */
 function Timeline({ attempt }: { attempt: QuizResultDetail }) {
     const steps = [
         { label: 'Link created', at: attempt.sent_at },
         { label: 'Opened', at: attempt.started_at },
         { label: 'Submitted', at: attempt.completed_at },
+        { label: 'Results reviewed', at: attempt.results_reviewed_at },
     ];
 
     return (
-        <ol className="grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-3">
+        <ol className="grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((step) => (
                 <li key={step.label} className="flex items-center gap-2.5">
                     <span
@@ -318,126 +313,6 @@ function Timeline({ attempt }: { attempt: QuizResultDetail }) {
                 </li>
             ))}
         </ol>
-    );
-}
-
-function QuestionResult({
-    question,
-    number,
-}: {
-    question: QuizResultQuestion;
-    number: number;
-}) {
-    const isMulti = question.type === 'multi';
-
-    return (
-        <div className="surface-tray">
-            <div className="surface-core p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="font-medium">Question {number}</span>
-                        <span className="inline-flex items-center gap-1 rounded-md border border-border/60 px-1.5 py-0.5">
-                            {isMulti ? (
-                                <ListChecks className="size-3" />
-                            ) : (
-                                <CircleDot className="size-3" />
-                            )}
-                            {isMulti ? 'Select all that apply' : 'Choose one'}
-                        </span>
-                    </div>
-                    <span
-                        className={cn(
-                            'inline-flex items-center gap-1 text-xs font-medium',
-                            question.is_correct
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : 'text-destructive',
-                        )}
-                    >
-                        {question.is_correct ? (
-                            <CheckCircle2 className="size-3.5" />
-                        ) : (
-                            <XCircle className="size-3.5" />
-                        )}
-                        {question.is_correct ? 'Correct' : 'Incorrect'}
-                    </span>
-                </div>
-
-                <p className="mt-3 text-sm font-medium text-pretty">
-                    {question.prompt}
-                </p>
-
-                <div className="mt-3 grid gap-2">
-                    {question.options.map((option, optionIndex) => (
-                        <OptionResult
-                            key={option.id}
-                            option={option}
-                            letter={OPTION_LETTERS[optionIndex]}
-                        />
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function OptionResult({
-    option,
-    letter,
-}: {
-    option: QuizResultOption;
-    letter: string;
-}) {
-    const missed = option.is_correct && !option.is_chosen;
-    const wrongPick = option.is_chosen && !option.is_correct;
-
-    return (
-        <div
-            className={cn(
-                'flex items-center gap-3 rounded-lg border p-2.5 text-sm',
-                option.is_correct &&
-                    option.is_chosen &&
-                    'border-emerald-500/50 bg-emerald-500/5',
-                missed && 'border-dashed border-emerald-500/60',
-                wrongPick && 'border-destructive/50 bg-destructive/5',
-                !option.is_correct && !option.is_chosen && 'border-border/60',
-            )}
-        >
-            <span
-                className={cn(
-                    'flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
-                    option.is_correct && option.is_chosen
-                        ? 'bg-emerald-500 text-white'
-                        : wrongPick
-                          ? 'bg-destructive text-white'
-                          : 'bg-muted text-muted-foreground',
-                )}
-            >
-                {letter}
-            </span>
-            <span
-                className={cn(
-                    'min-w-0 flex-1',
-                    option.is_chosen && 'font-medium',
-                )}
-            >
-                {option.text}
-            </span>
-            {option.is_chosen && (
-                <span className="shrink-0 text-xs text-muted-foreground">
-                    Their answer
-                </span>
-            )}
-            {missed && (
-                <span className="shrink-0 text-xs text-emerald-600 dark:text-emerald-400">
-                    Missed
-                </span>
-            )}
-            {option.is_correct ? (
-                <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
-            ) : wrongPick ? (
-                <XCircle className="size-4 shrink-0 text-destructive" />
-            ) : null}
-        </div>
     );
 }
 

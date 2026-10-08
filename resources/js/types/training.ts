@@ -80,6 +80,8 @@ export type QuizQuestionType = 'single' | 'multi';
 export type QuizQuestion = {
     id: number;
     prompt: string;
+    /** Shown to the trainee on their results after they submit. */
+    explanation: string | null;
     type: QuizQuestionType;
     order: number;
     options: QuizQuestionOption[];
@@ -131,6 +133,8 @@ export type TraineeSummary = {
     position: string | null;
     store: StoreOption;
     stats: TraineeStats;
+    /** Only sent by the Trainees index. */
+    archive_pending?: boolean;
 };
 
 export type TraineeDetail = {
@@ -142,6 +146,24 @@ export type TraineeDetail = {
     managers: { id: number; name: string }[];
     archived_at: string | null;
     archived_by: { id: number; name: string } | null;
+};
+
+export type ArchiveRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export type TraineeArchiveRequestSummary = {
+    id: number;
+    status: ArchiveRequestStatus;
+    reason: string;
+    review_note: string | null;
+    requested_by: { id: number; name: string } | null;
+    reviewed_by: { id: number; name: string } | null;
+    created_at: string;
+    reviewed_at: string | null;
+};
+
+export type ArchiveRequestRow = TraineeArchiveRequestSummary & {
+    trainee: { id: number; name: string; position: string | null };
+    store: StoreOption;
 };
 
 export type TraineeStatusCounts = {
@@ -307,9 +329,13 @@ export type DevelopmentEvaluationRatingInput = {
     rating: number;
 };
 
+export type EvaluationGrade = 'A' | 'B' | 'C' | 'D';
+
 export type DevelopmentEvaluationSummary = {
     id: number;
     evaluator: { id: number; name: string } | null;
+    grade: EvaluationGrade | null;
+    points: number | null;
     notes: string | null;
     submitted_at: string;
     ratings: { criterion: DevelopmentCriterion; rating: number }[];
@@ -321,6 +347,8 @@ export type DevelopmentZoneTrainee = {
     position: string | null;
     store: StoreOption;
     status: DevelopmentStatus;
+    /** Added straight into the zone — not on the Trainees roster. */
+    development_only: boolean;
     stats: DevelopmentStats;
 };
 
@@ -338,14 +366,68 @@ export type DevelopmentZoneShowData = {
         position: string | null;
         store: StoreOption;
         status: DevelopmentStatus;
+        development_only: boolean;
+        hired_at: string | null;
         archived_at: string | null;
     };
     evaluation: DevelopmentEvaluationSummary;
+    skillRatings: SkillRating[];
+    assessmentHistory: AssessmentHistoryEntry[];
     developmentPlan: DevelopmentPlanData;
     developmentPicker: DevelopmentPickerSection[];
     canManagePlan: boolean;
     canComplete: boolean;
     canRemove: boolean;
+    canReassess: boolean;
+};
+
+export type AssessmentAnswerType = 'yes_no' | 'level' | 'percentage';
+
+/** A Development Zone assessment question. */
+export type AssessmentQuestion = {
+    id: number;
+    prompt: string;
+    answer_type: AssessmentAnswerType;
+};
+
+/** A station or skill and its questions, as answered in an assessment. */
+export type AssessmentSkillForm = {
+    id: number;
+    name: string;
+    description: string | null;
+    questions: AssessmentQuestion[];
+};
+
+/** A station/skill as managed on the Assessment setup page. */
+export type AssessmentSkillSetup = {
+    id: number;
+    name: string;
+    description: string | null;
+    /** Optional Content Builder station whose content is suggested. */
+    section: { id: number; title: string } | null;
+    is_active: boolean;
+    questions: AssessmentQuestion[];
+};
+
+/** A station/skill rating from the latest assessment (0–5, ¼-star steps). */
+export type SkillRating = {
+    skill_id: number | null;
+    name: string;
+    /** Linked Content Builder station, if any (for plan suggestions). */
+    section_id: number | null;
+    stars: number;
+    /** The original evaluation's rating, once the employee was reassessed. */
+    baseline_stars: number | null;
+    is_need: boolean;
+};
+
+export type AssessmentHistoryEntry = {
+    id: number;
+    is_reassessment: boolean;
+    evaluator: { id: number; name: string } | null;
+    notes: string | null;
+    submitted_at: string;
+    average_stars: number | null;
 };
 
 /** A row in the training-team-only Quiz Results list. */
@@ -377,9 +459,18 @@ export type QuizResultQuestion = {
     id: number;
     prompt: string;
     type: QuizQuestionType;
+    explanation: string | null;
     /** Chosen set exactly matches the correct set (same rule as the score). */
     is_correct: boolean;
     options: QuizResultOption[];
+};
+
+/** What a trainee sees about their own attempt once they've submitted. */
+export type TraineeQuizResult = {
+    score: number;
+    correct_count: number;
+    questions_count: number;
+    questions: QuizResultQuestion[];
 };
 
 export type QuizResultDetail = {
@@ -397,4 +488,6 @@ export type QuizResultDetail = {
     sent_at: string;
     started_at: string | null;
     completed_at: string | null;
+    /** The trainee confirmed they reviewed their results (link closed). */
+    results_reviewed_at: string | null;
 };

@@ -358,6 +358,158 @@ class QuizTest extends TestCase
             );
     }
 
+    public function test_a_pending_quiz_never_reveals_correct_answers_or_explanations(): void
+    {
+        $this->withoutVite();
+        $quiz = Quiz::factory()->withQuestions(3)->create();
+        $quiz->questions()->update(['explanation' => 'Secret reasoning']);
+        $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id]);
+
+        $response = $this->get(route('quiz.show', $attempt->token))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('result', null)
+                ->missing('questions.0.explanation')
+                ->missing('questions.0.options.0.is_correct')
+            );
+
+        $this->assertStringNotContainsString('Secret reasoning', $response->getContent());
+        $this->assertStringNotContainsString('is_correct', $response->getContent());
+    }
+
+    public function test_after_submitting_the_trainee_sees_their_score_mistakes_and_the_correct_answers(): void
+    {
+        $this->withoutVite();
+        $quiz = Quiz::factory()->withQuestions(2)->create();
+        $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id]);
+        $questions = $quiz->questions()->with('options')->get();
+        $questions[1]->update(['explanation' => 'Raw chicken goes on the bottom shelf.']);
+
+        $right = $questions[0]->options->firstWhere('is_correct', true);
+        $wrong = $questions[1]->options->firstWhere('is_correct', false);
+        $missedCorrect = $questions[1]->options->firstWhere('is_correct', true);
+
+        $this->post(route('quiz.store', $attempt->token), ['answers' => [
+            $questions[0]->id => [$right->id],
+            $questions[1]->id => [$wrong->id],
+        ]])->assertRedirect(route('quiz.show', $attempt->token));
+
+        $this->get(route('quiz.show', $attempt->token))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('completed', true)
+                ->where('result.score', 50)
+                ->where('result.correct_count', 1)
+                ->where('result.questions_count', 2)
+                ->where('result.questions.0.is_correct', true)
+                ->where('result.questions.1.is_correct', false)
+                ->where('result.questions.1.explanation', 'Raw chicken goes on the bottom shelf.')
+                ->where('result.questions.1.options', fn ($options) => collect($options)->contains(
+                    fn ($option) => $option['id'] === $wrong->id && $option['is_chosen'] && ! $option['is_correct'],
+                ) && collect($options)->contains(
+                    fn ($option) => $option['id'] === $missedCorrect->id && $option['is_correct'] && ! $option['is_chosen'],
+                ))
+            );
+    }
+
+    public function test_confirming_the_results_were_reviewed_closes_the_link(): void
+    {
+        $this->withoutVite();
+        $quiz = Quiz::factory()->withQuestions(3)->create();
+        $attempt = QuizAttempt::factory()->completed(67)->create(['quiz_id' => $quiz->id]);
+
+        $this->get(route('quiz.show', $attempt->token))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('closed', false)
+                ->where('result.score', 67)
+            );
+
+        $this->post(route('quiz.close', $attempt->token))
+            ->assertRedirect(route('quiz.show', $attempt->token));
+
+        $this->assertNotNull($attempt->fresh()->results_reviewed_at);
+
+        // The results and correct answers can't be reopened from the link.
+        $this->get(route('quiz.show', $attempt->token))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('completed', true)
+                ->where('closed', true)
+                ->where('result', null)
+                ->has('questions', 0)
+            );
+
+        // The score itself is untouched for the training team.
+        $this->assertSame(67, $attempt->fresh()->score);
+    }
+
+    public function test_closing_twice_keeps_the_first_review_time(): void
+    {
+        $attempt = QuizAttempt::factory()->completed()->create(['results_reviewed_at' => now()->subDay()]);
+        $firstReview = $attempt->results_reviewed_at->toIso8601String();
+
+        $this->post(route('quiz.close', $attempt->token))->assertRedirect();
+
+        $this->assertSame($firstReview, $attempt->fresh()->results_reviewed_at->toIso8601String());
+    }
+
+    public function test_an_unsubmitted_quiz_cannot_be_closed(): void
+    {
+        $attempt = QuizAttempt::factory()->create();
+
+        $this->post(route('quiz.close', $attempt->token))->assertNotFound();
+        $this->post(route('quiz.close', 'not-a-real-token'))->assertNotFound();
+
+        $this->assertNull($attempt->fresh()->results_reviewed_at);
+    }
+
+    public function test_quiz_result_details_show_when_the_trainee_reviewed_their_results(): void
+    {
+        $this->withoutVite();
+        $attempt = QuizAttempt::factory()->completed()->create(['results_reviewed_at' => now()]);
+
+        $this->actingAs(User::factory()->superAdmin()->create())
+            ->get(route('training.quiz-results.show', $attempt))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('attempt.results_reviewed_at', $attempt->results_reviewed_at->toIso8601String())
+            );
+    }
+
+    public function test_super_admin_can_save_an_explanation_with_a_question(): void
+    {
+        $quiz = Quiz::factory()->create();
+
+        $this->actingAs(User::factory()->superAdmin()->create())
+            ->post(route('training.quiz-questions.store', $quiz), [
+                'prompt' => 'Where does raw chicken go?',
+                'explanation' => 'Always store raw chicken on the bottom shelf.',
+                'type' => 'single',
+                'options' => ['Top', 'Middle', 'Bottom', 'Door'],
+                'correct_index' => 2,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('Always store raw chicken on the bottom shelf.', $quiz->questions()->sole()->explanation);
+    }
+
+    public function test_an_explanation_is_optional_and_limited_in_length(): void
+    {
+        $quiz = Quiz::factory()->create();
+        $admin = User::factory()->superAdmin()->create();
+        $payload = [
+            'prompt' => 'Question?',
+            'type' => 'single',
+            'options' => ['A', 'B', 'C', 'D'],
+            'correct_index' => 0,
+        ];
+
+        $this->actingAs($admin)
+            ->post(route('training.quiz-questions.store', $quiz), $payload)
+            ->assertSessionHasNoErrors();
+        $this->assertNull($quiz->questions()->sole()->explanation);
+
+        $this->actingAs($admin)
+            ->post(route('training.quiz-questions.store', $quiz), [...$payload, 'explanation' => str_repeat('x', 1001)])
+            ->assertSessionHasErrors('explanation');
+    }
+
     public function test_an_unknown_token_404s(): void
     {
         $this->get(route('quiz.show', 'not-a-real-token'))->assertNotFound();

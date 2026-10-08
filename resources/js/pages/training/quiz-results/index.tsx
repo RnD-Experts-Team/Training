@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Check,
     ChevronRight,
@@ -8,6 +8,7 @@ import {
     Percent,
     Search,
     ShieldAlert,
+    Store,
     X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -34,20 +35,81 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useClipboard } from '@/hooks/use-clipboard';
+import { useStoreFilter, useSyncStoreFilter } from '@/hooks/use-store-filter';
 import { PASSING_SCORE, isPassingScore } from '@/lib/quiz';
 import { cn } from '@/lib/utils';
 import { index, show } from '@/routes/training/quiz-results';
 import type { BreadcrumbItem } from '@/types';
-import type { QuizAttemptRow, QuizAttemptStatus } from '@/types/training';
+import type {
+    QuizAttemptRow,
+    QuizAttemptStatus,
+    StoreOption,
+} from '@/types/training';
 
 type StatusFilter = 'all' | QuizAttemptStatus | 'flagged';
+
+const STATUS_TABS: { value: StatusFilter; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'not_started', label: 'Not started' },
+    { value: 'in_progress', label: 'In progress' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'flagged', label: 'Wrong person' },
+];
+
+type ResultFilter = 'all' | 'passed' | 'failed' | '90' | '70' | '50' | '0';
+
+/**
+ * Result/score filters. Only completed attempts have a score, so any choice
+ * other than "All results" narrows the list to submitted quizzes.
+ */
+const RESULT_FILTERS: {
+    value: Exclude<ResultFilter, 'all'>;
+    label: string;
+    matches: (score: number) => boolean;
+}[] = [
+    {
+        value: 'passed',
+        label: `Passed (${PASSING_SCORE}%+)`,
+        matches: (score) => score >= PASSING_SCORE,
+    },
+    {
+        value: 'failed',
+        label: `Failed (under ${PASSING_SCORE}%)`,
+        matches: (score) => score < PASSING_SCORE,
+    },
+    { value: '90', label: '90–100%', matches: (score) => score >= 90 },
+    {
+        value: '70',
+        label: '70–89%',
+        matches: (score) => score >= 70 && score < 90,
+    },
+    {
+        value: '50',
+        label: '50–69%',
+        matches: (score) => score >= 50 && score < 70,
+    },
+    { value: '0', label: '0–49%', matches: (score) => score < 50 },
+];
+
+function matchesResult(attempt: QuizAttemptRow, filter: ResultFilter): boolean {
+    if (filter === 'all') {
+        return true;
+    }
+
+    if (attempt.status !== 'completed' || attempt.score === null) {
+        return false;
+    }
+
+    const option = RESULT_FILTERS.find((f) => f.value === filter);
+
+    return option ? option.matches(attempt.score) : true;
+}
 
 /** The attempt's most recent event, used for sorting and the Activity column. */
 function latestActivity(attempt: QuizAttemptRow): {
@@ -66,27 +128,61 @@ function latestActivity(attempt: QuizAttemptRow): {
 }
 
 export default function QuizResultsIndex() {
-    const { attempts } = usePage<{ attempts: QuizAttemptRow[] }>().props;
+    const { attempts, stores, filters } = usePage<{
+        attempts: QuizAttemptRow[];
+        stores: StoreOption[];
+        filters: { store: number | null };
+    }>().props;
 
     const [status, setStatus] = useState<StatusFilter>('all');
     const [sectionId, setSectionId] = useState<string>('all');
+    const [result, setResult] = useState<ResultFilter>('all');
     const [search, setSearch] = useState('');
     const [copiedLink, copy] = useClipboard();
 
-    const counts = useMemo(
-        () => ({
-            all: attempts.length,
-            not_started: attempts.filter((a) => a.status === 'not_started')
-                .length,
-            in_progress: attempts.filter((a) => a.status === 'in_progress')
-                .length,
-            completed: attempts.filter((a) => a.status === 'completed').length,
-            flagged: attempts.filter((a) => a.flagged).length,
-        }),
-        [attempts],
+    const { setSelectedStoreId } = useStoreFilter();
+    useSyncStoreFilter(filters.store);
+
+    function filterStore(value: string) {
+        const storeId = value === 'all' ? null : Number(value);
+        setSelectedStoreId(storeId);
+        router.get(index().url, storeId ? { store: storeId } : {}, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    }
+
+    // The quiz and result filters define the data set the summary cards and
+    // status counts describe; status and search only narrow the list.
+    const scopedAttempts = useMemo(
+        () =>
+            attempts.filter(
+                (attempt) =>
+                    (sectionId === 'all' ||
+                        String(attempt.section.id) === sectionId) &&
+                    matchesResult(attempt, result),
+            ),
+        [attempts, sectionId, result],
     );
 
-    const scores = attempts
+    const counts = useMemo(
+        () => ({
+            all: scopedAttempts.length,
+            not_started: scopedAttempts.filter(
+                (a) => a.status === 'not_started',
+            ).length,
+            in_progress: scopedAttempts.filter(
+                (a) => a.status === 'in_progress',
+            ).length,
+            completed: scopedAttempts.filter((a) => a.status === 'completed')
+                .length,
+            flagged: scopedAttempts.filter((a) => a.flagged).length,
+        }),
+        [scopedAttempts],
+    );
+
+    const scores = scopedAttempts
         .filter((a) => a.status === 'completed' && a.score !== null)
         .map((a) => a.score as number);
     const averageScore = scores.length
@@ -107,7 +203,7 @@ export default function QuizResultsIndex() {
     const visibleAttempts = useMemo(() => {
         const term = search.trim().toLowerCase();
 
-        return attempts
+        return scopedAttempts
             .filter((attempt) => {
                 if (status === 'flagged') {
                     return attempt.flagged;
@@ -115,11 +211,6 @@ export default function QuizResultsIndex() {
 
                 return status === 'all' || attempt.status === status;
             })
-            .filter(
-                (attempt) =>
-                    sectionId === 'all' ||
-                    String(attempt.section.id) === sectionId,
-            )
             .filter(
                 (attempt) =>
                     term === '' ||
@@ -131,13 +222,18 @@ export default function QuizResultsIndex() {
                     new Date(latestActivity(b).at).getTime() -
                     new Date(latestActivity(a).at).getTime(),
             );
-    }, [attempts, status, sectionId, search]);
+    }, [scopedAttempts, status, search]);
 
-    const isFiltered = status !== 'all' || sectionId !== 'all' || search !== '';
+    const isFiltered =
+        status !== 'all' ||
+        sectionId !== 'all' ||
+        result !== 'all' ||
+        search !== '';
 
     function clearFilters() {
         setStatus('all');
         setSectionId('all');
+        setResult('all');
         setSearch('');
     }
 
@@ -146,12 +242,43 @@ export default function QuizResultsIndex() {
             <Head title="Quiz Results" />
 
             <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
-                <Heading
-                    title="Quiz Results"
-                    description="Every quiz link and result across the program. Only the training team can see scores and answers."
-                />
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between [&_header]:mb-0">
+                    <Heading
+                        title="Quiz Results"
+                        description="Every quiz link and result across the program. Only the training team can see scores and answers."
+                    />
+                    {stores.length > 1 && (
+                        <Select
+                            value={
+                                filters.store ? String(filters.store) : 'all'
+                            }
+                            onValueChange={filterStore}
+                        >
+                            <SelectTrigger
+                                className="w-full sm:w-48"
+                                aria-label="Filter by store"
+                            >
+                                <span className="flex min-w-0 items-center gap-2">
+                                    <Store className="size-4 shrink-0 text-muted-foreground" />
+                                    <SelectValue placeholder="All stores" />
+                                </span>
+                            </SelectTrigger>
+                            <SelectContent align="end">
+                                <SelectItem value="all">All stores</SelectItem>
+                                {stores.map((store) => (
+                                    <SelectItem
+                                        key={store.id}
+                                        value={String(store.id)}
+                                    >
+                                        {store.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
 
-                {attempts.length === 0 ? (
+                {attempts.length === 0 && filters.store === null ? (
                     <Card className="flex flex-col items-center justify-center gap-3 border-dashed p-12 text-center">
                         <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                             <FileQuestion className="size-6" />
@@ -208,55 +335,34 @@ export default function QuizResultsIndex() {
 
                         <section className="surface-tray">
                             <div className="surface-core overflow-hidden">
-                                <header className="flex flex-col gap-3 border-b border-border/60 p-4 lg:flex-row lg:items-center lg:justify-between">
-                                    <ToggleGroup
-                                        type="single"
-                                        variant="outline"
-                                        size="sm"
-                                        value={status}
-                                        onValueChange={(value) =>
-                                            value &&
-                                            setStatus(value as StatusFilter)
-                                        }
-                                        className="w-full justify-start overflow-x-auto lg:w-auto"
+                                <header className="border-b border-border/60">
+                                    <div
+                                        role="tablist"
+                                        aria-label="Filter by status"
+                                        className="flex [scrollbar-width:none] gap-1 overflow-x-auto border-b border-border/60 px-2 sm:px-3"
                                     >
-                                        <ToggleGroupItem value="all">
-                                            All
-                                            <FilterCount value={counts.all} />
-                                        </ToggleGroupItem>
-                                        <ToggleGroupItem value="not_started">
-                                            Not started
-                                            <FilterCount
-                                                value={counts.not_started}
+                                        {STATUS_TABS.filter(
+                                            (tab) =>
+                                                tab.value !== 'flagged' ||
+                                                counts.flagged > 0,
+                                        ).map((tab) => (
+                                            <StatusTab
+                                                key={tab.value}
+                                                label={tab.label}
+                                                count={counts[tab.value]}
+                                                active={status === tab.value}
+                                                warning={
+                                                    tab.value === 'flagged'
+                                                }
+                                                onSelect={() =>
+                                                    setStatus(tab.value)
+                                                }
                                             />
-                                        </ToggleGroupItem>
-                                        <ToggleGroupItem value="in_progress">
-                                            In progress
-                                            <FilterCount
-                                                value={counts.in_progress}
-                                            />
-                                        </ToggleGroupItem>
-                                        <ToggleGroupItem value="completed">
-                                            Completed
-                                            <FilterCount
-                                                value={counts.completed}
-                                            />
-                                        </ToggleGroupItem>
-                                        {counts.flagged > 0 && (
-                                            <ToggleGroupItem
-                                                value="flagged"
-                                                className="text-amber-600 dark:text-amber-400"
-                                            >
-                                                Wrong person
-                                                <FilterCount
-                                                    value={counts.flagged}
-                                                />
-                                            </ToggleGroupItem>
-                                        )}
-                                    </ToggleGroup>
+                                        ))}
+                                    </div>
 
-                                    <div className="flex flex-col gap-2 sm:flex-row">
-                                        <div className="relative sm:w-64">
+                                    <div className="grid gap-2 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-[minmax(0,1fr)_13rem_13rem_auto]">
+                                        <div className="relative sm:col-span-2 xl:col-span-1">
                                             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                                             <Input
                                                 value={search}
@@ -270,34 +376,68 @@ export default function QuizResultsIndex() {
                                                 className="pl-8"
                                             />
                                         </div>
-                                        {sections.length > 1 && (
-                                            <Select
-                                                value={sectionId}
-                                                onValueChange={setSectionId}
+                                        <Select
+                                            value={sectionId}
+                                            onValueChange={setSectionId}
+                                        >
+                                            <SelectTrigger
+                                                className="w-full"
+                                                aria-label="Filter by quiz"
                                             >
-                                                <SelectTrigger
-                                                    className="sm:w-48"
-                                                    aria-label="Filter by quiz"
-                                                >
-                                                    <SelectValue placeholder="All quizzes" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="all">
-                                                        All quizzes
+                                                <SelectValue placeholder="All quizzes" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">
+                                                    All quizzes
+                                                </SelectItem>
+                                                {sections.map((section) => (
+                                                    <SelectItem
+                                                        key={section.id}
+                                                        value={String(
+                                                            section.id,
+                                                        )}
+                                                    >
+                                                        {section.title}
                                                     </SelectItem>
-                                                    {sections.map((section) => (
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Select
+                                            value={result}
+                                            onValueChange={(value) =>
+                                                setResult(value as ResultFilter)
+                                            }
+                                        >
+                                            <SelectTrigger
+                                                className="w-full"
+                                                aria-label="Filter by result"
+                                            >
+                                                <SelectValue placeholder="All results" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">
+                                                    All results
+                                                </SelectItem>
+                                                {RESULT_FILTERS.map(
+                                                    (option) => (
                                                         <SelectItem
-                                                            key={section.id}
-                                                            value={String(
-                                                                section.id,
-                                                            )}
+                                                            key={option.value}
+                                                            value={option.value}
                                                         >
-                                                            {section.title}
+                                                            {option.label}
                                                         </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        )}
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        <Button
+                                            variant="ghost"
+                                            onClick={clearFilters}
+                                            disabled={!isFiltered}
+                                            className="hidden text-muted-foreground xl:inline-flex"
+                                        >
+                                            <X className="size-4" /> Clear
+                                        </Button>
                                     </div>
                                 </header>
 
@@ -305,16 +445,20 @@ export default function QuizResultsIndex() {
                                     <div className="flex flex-col items-center gap-3 p-12 text-center">
                                         <Search className="size-8 text-muted-foreground" />
                                         <p className="text-sm text-muted-foreground">
-                                            No quiz links match these filters.
+                                            {attempts.length === 0
+                                                ? 'No quiz links for this store yet.'
+                                                : 'No quiz links match these filters.'}
                                         </p>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={clearFilters}
-                                        >
-                                            <X className="size-4" /> Clear
-                                            filters
-                                        </Button>
+                                        {isFiltered && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={clearFilters}
+                                            >
+                                                <X className="size-4" /> Clear
+                                                filters
+                                            </Button>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="overflow-x-auto">
@@ -386,11 +530,46 @@ export default function QuizResultsIndex() {
     );
 }
 
-function FilterCount({ value }: { value: number }) {
+/** One underlined status tab with its live count. */
+function StatusTab({
+    label,
+    count,
+    active,
+    warning,
+    onSelect,
+}: {
+    label: string;
+    count: number;
+    active: boolean;
+    warning: boolean;
+    onSelect: () => void;
+}) {
     return (
-        <span className="ml-1 rounded bg-muted px-1.5 text-[11px] font-medium text-muted-foreground tabular-nums">
-            {value}
-        </span>
+        <button
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={onSelect}
+            className={cn(
+                '-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium whitespace-nowrap transition-colors',
+                active
+                    ? 'border-primary text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground',
+                warning && 'text-amber-600 dark:text-amber-400',
+            )}
+        >
+            {label}
+            <span
+                className={cn(
+                    'min-w-5 rounded-full px-1.5 text-center text-[11px] leading-5 tabular-nums',
+                    active
+                        ? 'bg-primary/15 text-foreground'
+                        : 'bg-muted text-muted-foreground',
+                )}
+            >
+                {count}
+            </span>
+        </button>
     );
 }
 

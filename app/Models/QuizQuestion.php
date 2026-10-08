@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property int $quiz_id
  * @property string $prompt
+ * @property string|null $explanation
  * @property QuizQuestionType $type
  * @property int $order
  * @property-read Quiz $quiz
@@ -25,7 +26,7 @@ class QuizQuestion extends Model
     use HasFactory;
 
     /** @var list<string> */
-    protected $fillable = ['quiz_id', 'prompt', 'type', 'order'];
+    protected $fillable = ['quiz_id', 'prompt', 'explanation', 'type', 'order'];
 
     /**
      * @return array<string, string>

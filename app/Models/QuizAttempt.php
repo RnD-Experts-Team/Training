@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $sent_at
  * @property Carbon|null $started_at
  * @property Carbon|null $completed_at
+ * @property Carbon|null $results_reviewed_at
  * @property int|null $score
  * @property Carbon|null $wrong_recipient_reported_at
  * @property-read Quiz $quiz
@@ -36,7 +37,7 @@ class QuizAttempt extends Model
 
     /** @var list<string> */
     protected $fillable = [
-        'quiz_id', 'trainee_id', 'token', 'sent_at', 'started_at', 'completed_at', 'score', 'wrong_recipient_reported_at',
+        'quiz_id', 'trainee_id', 'token', 'sent_at', 'started_at', 'completed_at', 'results_reviewed_at', 'score', 'wrong_recipient_reported_at',
     ];
 
     /**
@@ -48,6 +49,7 @@ class QuizAttempt extends Model
             'sent_at' => 'datetime',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
+            'results_reviewed_at' => 'datetime',
             'wrong_recipient_reported_at' => 'datetime',
         ];
     }
@@ -79,6 +81,15 @@ class QuizAttempt extends Model
     public function isCompleted(): bool
     {
         return $this->completed_at !== null;
+    }
+
+    /**
+     * The trainee confirmed they reviewed their results, which closes the
+     * link for good.
+     */
+    public function isClosed(): bool
+    {
+        return $this->results_reviewed_at !== null;
     }
 
     public function status(): QuizAttemptStatus

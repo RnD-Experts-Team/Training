@@ -66,6 +66,27 @@ class QuizVersioningTest extends TestCase
         $this->assertSame(1, $v2->questions()->where('prompt', 'Reworded?')->count());
     }
 
+    public function test_explanations_carry_over_to_the_next_version(): void
+    {
+        $v1 = $this->quiz();
+        $kept = $v1->questions()->orderBy('order')->first();
+        $kept->update(['explanation' => 'Because food safety.']);
+        $edited = $v1->questions()->orderBy('order')->skip(1)->first();
+        QuizAttempt::factory()->create(['quiz_id' => $v1->id]);
+
+        $this->actingAs($this->admin())
+            ->put(route('training.quiz-questions.update', $edited), [
+                ...$this->questionPayload('Reworded?'),
+                'explanation' => 'New reasoning.',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $v2 = Quiz::where('version', 2)->sole();
+        $this->assertSame('Because food safety.', $v2->questions()->where('prompt', $kept->prompt)->sole()->explanation);
+        $this->assertSame('New reasoning.', $v2->questions()->where('prompt', 'Reworded?')->sole()->explanation);
+        $this->assertNull($edited->fresh()->explanation);
+    }
+
     public function test_a_run_of_edits_after_sending_creates_only_one_new_version(): void
     {
         $v1 = $this->quiz();

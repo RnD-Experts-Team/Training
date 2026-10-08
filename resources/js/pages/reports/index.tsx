@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Heading from '@/components/heading';
 import { ContentPanel } from '@/components/reports/content-panel';
 import { OverviewPanel } from '@/components/reports/overview-panel';
+import { StoreGroupSelect } from '@/components/reports/store-group-select';
 import { StoresPanel } from '@/components/reports/stores-panel';
 import { TraineesPanel } from '@/components/reports/trainees-panel';
 import { Button } from '@/components/ui/button';
@@ -75,7 +76,22 @@ export default function ReportsIndex() {
     const [area, setArea] = useState<ReportArea>('overview');
 
     const { setSelectedStoreId } = useStoreFilter();
-    useSyncStoreFilter(filters.store);
+    // A group of stores is Reports-only; one store (or all) stays in sync with
+    // the sidebar switcher like every other page.
+    useSyncStoreFilter(
+        filters.stores.length > 1 ? undefined : (filters.stores[0] ?? null),
+    );
+
+    /** Query params for the store selection: one `store`, or a `stores[]` group. */
+    function storeParams(
+        storeIds: number[],
+    ): Record<string, string | string[]> {
+        if (storeIds.length === 1) {
+            return { store: String(storeIds[0]) };
+        }
+
+        return storeIds.length > 1 ? { stores: storeIds.map(String) } : {};
+    }
 
     const csvReportForArea: Record<ReportArea, string> = {
         overview: 'trainees',
@@ -91,9 +107,11 @@ export default function ReportsIndex() {
             params.set('report', csvReportForArea[area]);
         }
 
-        if (filters.store) {
-            params.set('store', String(filters.store));
-        }
+        Object.entries(storeParams(filters.stores)).forEach(([key, value]) =>
+            Array.isArray(value)
+                ? value.forEach((id) => params.append(`${key}[]`, id))
+                : params.set(key, value),
+        );
 
         if (filters.weeks) {
             params.set('weeks', String(filters.weeks));
@@ -107,24 +125,21 @@ export default function ReportsIndex() {
     }
 
     function applyFilters(next: {
-        store?: string;
+        stores?: number[];
         weeks?: string;
         includeArchived?: boolean;
     }) {
-        const store =
-            next.store ?? (filters.store ? String(filters.store) : 'all');
+        const stores = next.stores ?? filters.stores;
         const weeks = next.weeks ?? String(filters.weeks);
         const includeArchived = next.includeArchived ?? filters.includeArchived;
 
-        if (next.store !== undefined) {
-            setSelectedStoreId(store === 'all' ? null : Number(store));
+        if (next.stores !== undefined) {
+            // One store becomes the app-wide choice; a group is Reports-only,
+            // so the other pages fall back to All stores.
+            setSelectedStoreId(stores.length === 1 ? stores[0] : null);
         }
 
-        const params: Record<string, string> = {};
-
-        if (store !== 'all') {
-            params.store = store;
-        }
+        const params: Record<string, string | string[]> = storeParams(stores);
 
         if (weeks !== String(weekOptions[0])) {
             params.weeks = weeks;
@@ -153,33 +168,12 @@ export default function ReportsIndex() {
                     />
                     <div className="flex flex-wrap items-center gap-2">
                         {canChooseStore && storeOptions.length > 0 && (
-                            <Select
-                                value={
-                                    filters.store
-                                        ? String(filters.store)
-                                        : 'all'
-                                }
-                                onValueChange={(store) =>
-                                    applyFilters({ store })
-                                }
-                            >
-                                <SelectTrigger className="w-40">
-                                    <SelectValue placeholder="All stores" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">
-                                        All stores
-                                    </SelectItem>
-                                    {storeOptions.map((store) => (
-                                        <SelectItem
-                                            key={store.id}
-                                            value={String(store.id)}
-                                        >
-                                            {store.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <StoreGroupSelect
+                                key={filters.stores.join(',')}
+                                options={storeOptions}
+                                value={filters.stores}
+                                onApply={(stores) => applyFilters({ stores })}
+                            />
                         )}
                         <Select
                             value={String(filters.weeks)}

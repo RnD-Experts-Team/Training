@@ -75,8 +75,13 @@ export function useStoreFilter() {
  * fallback (`useStoreFilter` reports `null` on first paint since the
  * server can't see localStorage) — module state is already populated from
  * localStorage before this effect ever runs.
+ *
+ * Pass `undefined` when the page is showing a group of stores (Reports) —
+ * that view is left as-is and the single-store preference untouched.
  */
-export function useSyncStoreFilter(pageStoreId: number | null): void {
+export function useSyncStoreFilter(
+    pageStoreId: number | null | undefined,
+): void {
     const handled = useRef(false);
 
     useEffect(() => {
@@ -85,6 +90,10 @@ export function useSyncStoreFilter(pageStoreId: number | null): void {
         }
 
         handled.current = true;
+
+        if (pageStoreId === undefined) {
+            return;
+        }
 
         const selectedStoreId = currentStoreId;
         const url = new URL(window.location.href);

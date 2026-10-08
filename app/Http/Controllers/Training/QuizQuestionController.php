@@ -31,6 +31,7 @@ class QuizQuestionController extends Controller
 
             $question = $editable->questions()->create([
                 'prompt' => $request->validated('prompt'),
+                'explanation' => $request->validated('explanation'),
                 'type' => $request->validated('type'),
                 'order' => (int) $editable->questions()->max('order') + 1,
             ]);
@@ -50,6 +51,7 @@ class QuizQuestionController extends Controller
 
             $target->update([
                 'prompt' => $request->validated('prompt'),
+                'explanation' => $request->validated('explanation'),
                 'type' => $request->validated('type'),
             ]);
             // Safe: this version has never been sent, so no answers point at these options.

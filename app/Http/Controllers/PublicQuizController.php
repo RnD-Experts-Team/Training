@@ -6,8 +6,10 @@ use App\Enums\QuizQuestionType;
 use App\Models\QuizAnswer;
 use App\Models\QuizAttempt;
 use App\Models\QuizQuestion;
+use App\Services\Training\QuizAttemptBreakdown;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -19,7 +21,13 @@ use Inertia\Response;
  */
 class PublicQuizController extends Controller
 {
-    public function show(string $token): Response
+    /**
+     * Before submitting, only the questions and choices are sent — never
+     * which answers are correct. Once submitted, the trainee gets their
+     * result: score, what they missed, the correct answers and why — until
+     * they confirm they've reviewed it, which closes the link.
+     */
+    public function show(string $token, QuizAttemptBreakdown $breakdown): Response
     {
         $attempt = QuizAttempt::where('token', $token)->firstOrFail();
         $attempt->load('quiz.questions.options', 'trainee:id,name');
@@ -29,6 +37,7 @@ class PublicQuizController extends Controller
             'traineeName' => $attempt->trainee->name,
             'sectionTitle' => $attempt->quiz->section?->title,
             'completed' => $attempt->isCompleted(),
+            'closed' => $attempt->isClosed(),
             'flaggedAsMismatch' => $attempt->isFlaggedAsMisdirected(),
             'questions' => $attempt->isCompleted()
                 ? []
@@ -41,7 +50,23 @@ class PublicQuizController extends Controller
                         'text' => $option->text,
                     ])->values(),
                 ])->values(),
+            'result' => $attempt->isCompleted() && ! $attempt->isClosed() ? $this->result($attempt, $breakdown) : null,
         ]);
+    }
+
+    /**
+     * @return array{score: int, correct_count: int, questions_count: int, questions: Collection<int, array<string, mixed>>}
+     */
+    private function result(QuizAttempt $attempt, QuizAttemptBreakdown $breakdown): array
+    {
+        $questions = $breakdown->questions($attempt);
+
+        return [
+            'score' => (int) $attempt->score,
+            'correct_count' => $questions->where('is_correct', true)->count(),
+            'questions_count' => $questions->count(),
+            'questions' => $questions,
+        ];
     }
 
     /**
@@ -55,6 +80,22 @@ class PublicQuizController extends Controller
 
         if (! $attempt->isCompleted() && $attempt->started_at === null) {
             $attempt->update(['started_at' => now()]);
+        }
+
+        return to_route('quiz.show', $token);
+    }
+
+    /**
+     * The trainee confirmed they've reviewed their results — close the link
+     * so the results (and correct answers) can't be reopened or passed on.
+     * Only a submitted quiz can be closed; closing twice changes nothing.
+     */
+    public function close(string $token): RedirectResponse
+    {
+        $attempt = QuizAttempt::where('token', $token)->whereNotNull('completed_at')->firstOrFail();
+
+        if (! $attempt->isClosed()) {
+            $attempt->update(['results_reviewed_at' => now()]);
         }
 
         return to_route('quiz.show', $token);

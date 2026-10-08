@@ -50,6 +50,17 @@ class TraineeFactory extends Factory
     }
 
     /**
+     * An employee added straight into the Development Zone — not on the
+     * Trainees roster.
+     */
+    public function developmentOnly(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'development_only' => true,
+        ]);
+    }
+
+    /**
      * In the Development Zone at the given lifecycle status.
      */
     public function developmentStatus(DevelopmentStatus $status): static

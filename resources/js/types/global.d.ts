@@ -15,6 +15,7 @@ declare module '@inertiajs/core' {
             auth: Auth;
             sidebarOpen: boolean;
             storeSwitcher: StoreSwitcherContext | null;
+            pendingArchiveRequests: number | null;
             [key: string]: unknown;
         };
     }
