@@ -6,6 +6,7 @@ use App\Enums\Importance;
 use App\Enums\Role;
 use App\Models\ChecklistItem;
 use App\Models\DevelopmentEvaluationRating;
+use App\Models\DevelopmentSkillScore;
 use App\Models\Evaluation;
 use App\Models\QuizAttempt;
 use App\Models\Section;
@@ -39,11 +40,17 @@ class ReportAnalytics
     /**
      * Resolve the reporting scope for a user + request filters.
      *
-     * @param  array{store?: int|null, weeks?: int|null, includeArchived?: bool}  $filters
+     * `stores` compares several stores together; the single `store` is still
+     * accepted (the sidebar switcher and older links use it).
+     *
+     * @param  array{stores?: array<int, int>, store?: int|null, weeks?: int|null, includeArchived?: bool}  $filters
      */
     public function for(User $user, array $filters = []): ReportScope
     {
-        $storeId = $user->resolveStoreFilter($filters['store'] ?? null);
+        $requestedStoreIds = ($filters['stores'] ?? []) !== []
+            ? $filters['stores']
+            : array_filter([$filters['store'] ?? null]);
+        $storeIds = $user->resolveStoreFilters($requestedStoreIds);
         $includeArchived = (bool) ($filters['includeArchived'] ?? false);
 
         $weeks = (int) ($filters['weeks'] ?? self::WEEK_OPTIONS[0]);
@@ -51,15 +58,26 @@ class ReportAnalytics
             $weeks = self::WEEK_OPTIONS[0];
         }
 
-        $traineeIds = Trainee::query()
+        $visible = Trainee::query()
             ->visibleTo($user)
-            ->inStore($storeId)
-            ->when(! $includeArchived, fn ($query) => $query->active())
+            ->inStore($storeIds)
+            ->when(! $includeArchived, fn ($query) => $query->active());
+
+        $traineeIds = (clone $visible)
+            ->onRoster()
             ->pluck('id')
             ->map(fn ($id): int => (int) $id)
             ->all();
 
-        return new ReportScope($user, $traineeIds, $storeId, $weeks, $includeArchived);
+        // The Development Zone card also counts employees added straight into
+        // the zone, who are otherwise kept out of roster reporting.
+        $developmentTraineeIds = (clone $visible)
+            ->inDevelopmentZone()
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        return new ReportScope($user, $traineeIds, $storeIds, $weeks, $includeArchived, $developmentTraineeIds);
     }
 
     /**
@@ -228,8 +246,8 @@ class ReportAnalytics
             ->where('role', Role::Manager)
             ->when(! $scope->isSuperAdmin(), fn ($query) => $query->whereKey($scope->user->id))
             ->when(
-                $scope->isSuperAdmin() && $scope->storeId,
-                fn ($query) => $query->whereHas('stores', fn ($inner) => $inner->whereKey($scope->storeId)),
+                $scope->isSuperAdmin() && $scope->hasStoreFilter(),
+                fn ($query) => $query->whereHas('stores', fn ($inner) => $inner->whereIn('stores.id', $scope->storeIds)),
             )
             ->with('stores:id,name')
             ->orderBy('name')
@@ -438,12 +456,12 @@ class ReportAnalytics
             'plan_completion' => 0,
         ];
 
-        if ($scope->isEmpty()) {
+        if ($scope->developmentTraineeIds === []) {
             return $empty;
         }
 
         $trainees = Trainee::query()
-            ->whereIn('id', $scope->traineeIds)
+            ->whereIn('id', $scope->developmentTraineeIds)
             ->get(['id', 'development_status']);
 
         $counts = ['pending' => 0, 'active' => 0, 'completed' => 0];
@@ -455,9 +473,14 @@ class ReportAnalytics
 
         $inZoneIds = $trainees->whereNotNull('development_status')->pluck('id');
 
-        $averageRating = DevelopmentEvaluationRating::query()
-            ->whereHas('evaluation', fn ($query) => $query->whereIn('trainee_id', $scope->traineeIds))
-            ->avg('rating');
+        // Station assessment stars (0–5); evaluations from before the station
+        // assessment only have criterion ratings, which are on the same scale.
+        $averageRating = DevelopmentSkillScore::query()
+            ->whereHas('evaluation', fn ($query) => $query->whereIn('trainee_id', $scope->developmentTraineeIds))
+            ->avg('stars')
+            ?? DevelopmentEvaluationRating::query()
+                ->whereHas('evaluation', fn ($query) => $query->whereIn('trainee_id', $scope->developmentTraineeIds))
+                ->avg('rating');
 
         $planStats = $this->progress->developmentStats($inZoneIds);
         $planCompleted = array_sum(array_column($planStats, 'completed'));

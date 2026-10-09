@@ -106,7 +106,8 @@ export type QuizResultsSummary = {
 };
 
 export type ReportFilters = {
-    store: number | null;
+    /** Stores combined in the report; empty means all stores. */
+    stores: number[];
     weeks: number;
     includeArchived: boolean;
 };

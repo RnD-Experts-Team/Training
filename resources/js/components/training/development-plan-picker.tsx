@@ -2,6 +2,10 @@ import { useForm } from '@inertiajs/react';
 import { ChevronDown, Search, Target, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
+import {
+    DEVELOPMENT_NEED_HINT,
+    StarMeter,
+} from '@/components/training/star-meter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -23,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { update } from '@/routes/trainees/development';
-import type { DevelopmentPickerSection } from '@/types/training';
+import type { DevelopmentPickerSection, SkillRating } from '@/types/training';
 
 function matches(text: string, query: string) {
     return text.toLowerCase().includes(query.toLowerCase());
@@ -33,13 +37,42 @@ export function DevelopmentPlanPicker({
     traineeId,
     sections,
     selectedIds,
+    skillRatings = [],
     trigger,
 }: {
     traineeId: number;
     sections: DevelopmentPickerSection[];
     selectedIds: number[];
+    /** Latest assessment ratings — content linked to Development Needs is suggested first. */
+    skillRatings?: SkillRating[];
     trigger: ReactNode;
 }) {
+    const ratingBySection = useMemo(() => {
+        const map = new Map<
+            number,
+            { stars: number; is_need: boolean; names: string[] }
+        >();
+
+        for (const rating of skillRatings) {
+            if (rating.section_id === null) {
+                continue;
+            }
+
+            const existing = map.get(rating.section_id);
+            map.set(rating.section_id, {
+                stars: existing
+                    ? Math.min(existing.stars, rating.stars)
+                    : rating.stars,
+                is_need: Boolean(existing?.is_need) || rating.is_need,
+                names: [...(existing?.names ?? []), rating.name],
+            });
+        }
+
+        return map;
+    }, [skillRatings]);
+    const needSections = sections.filter(
+        (section) => ratingBySection.get(section.id)?.is_need,
+    );
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
     const [openSectionIds, setOpenSectionIds] = useState<Set<number>>(
@@ -121,31 +154,49 @@ export function DevelopmentPlanPicker({
     const searching = trimmedQuery.length > 0;
 
     const filteredSections = useMemo(() => {
-        return sections
-            .map((section) => {
-                const sectionMatches =
-                    !trimmedQuery || matches(section.title, trimmedQuery);
+        return (
+            sections
+                .map((section) => {
+                    const sectionMatches =
+                        !trimmedQuery || matches(section.title, trimmedQuery);
 
-                const categories = section.categories
-                    .map((category) => {
-                        const categoryMatches =
-                            sectionMatches ||
-                            matches(category.title, trimmedQuery);
+                    const categories = section.categories
+                        .map((category) => {
+                            const categoryMatches =
+                                sectionMatches ||
+                                matches(category.title, trimmedQuery);
 
-                        const items = categoryMatches
-                            ? category.items
-                            : category.items.filter((item) =>
-                                  matches(item.title, trimmedQuery),
-                              );
+                            const items = categoryMatches
+                                ? category.items
+                                : category.items.filter((item) =>
+                                      matches(item.title, trimmedQuery),
+                                  );
 
-                        return { ...category, items };
-                    })
-                    .filter((category) => category.items.length > 0);
+                            return { ...category, items };
+                        })
+                        .filter((category) => category.items.length > 0);
 
-                return { ...section, categories };
-            })
-            .filter((section) => section.categories.length > 0);
-    }, [sections, trimmedQuery]);
+                    return { ...section, categories };
+                })
+                .filter((section) => section.categories.length > 0)
+                // Development Needs first, the rest in their usual order.
+                .sort(
+                    (a, b) =>
+                        Number(Boolean(ratingBySection.get(b.id)?.is_need)) -
+                        Number(Boolean(ratingBySection.get(a.id)?.is_need)),
+                )
+        );
+    }, [sections, trimmedQuery, ratingBySection]);
+
+    function addDevelopmentNeeds() {
+        const ids = needSections.flatMap((section) =>
+            section.categories.flatMap((category) =>
+                category.items.map((item) => item.id),
+            ),
+        );
+
+        form.setData('item_ids', [...new Set([...form.data.item_ids, ...ids])]);
+    }
 
     const selectedItems = form.data.item_ids
         .map((id) => {
@@ -180,6 +231,30 @@ export function DevelopmentPlanPicker({
                     onSubmit={submit}
                     className="flex min-h-0 flex-1 flex-col gap-3"
                 >
+                    {needSections.length > 0 && (
+                        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/30 px-3 py-2">
+                            <p className="flex items-center gap-2 text-sm">
+                                <Target className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                                <span>
+                                    <span className="font-medium">
+                                        Development needs:
+                                    </span>{' '}
+                                    {needSections
+                                        .map((section) => section.title)
+                                        .join(', ')}
+                                </span>
+                            </p>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={addDevelopmentNeeds}
+                            >
+                                Add their content
+                            </Button>
+                        </div>
+                    )}
+
                     <div className="relative shrink-0">
                         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
@@ -234,6 +309,33 @@ export function DevelopmentPlanPicker({
                                                         <span className="min-w-0 flex-1 truncate text-base font-semibold tracking-tight">
                                                             {section.title}
                                                         </span>
+                                                        {ratingBySection.has(
+                                                            section.id,
+                                                        ) && (
+                                                            <StarMeter
+                                                                value={
+                                                                    ratingBySection.get(
+                                                                        section.id,
+                                                                    )!.stars
+                                                                }
+                                                                size="sm"
+                                                                className="hidden sm:inline-flex"
+                                                            />
+                                                        )}
+                                                        {ratingBySection.get(
+                                                            section.id,
+                                                        )?.is_need && (
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="gap-1 text-muted-foreground"
+                                                                title={
+                                                                    DEVELOPMENT_NEED_HINT
+                                                                }
+                                                            >
+                                                                <Target className="size-3 text-amber-500" />
+                                                                Need
+                                                            </Badge>
+                                                        )}
                                                         <Badge
                                                             variant={
                                                                 selectedCount >

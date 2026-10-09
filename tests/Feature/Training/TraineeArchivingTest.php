@@ -16,20 +16,23 @@ class TraineeArchivingTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_assigned_manager_can_archive_a_trainee_but_not_restore_it(): void
+    public function test_admin_can_archive_a_trainee_but_assigned_manager_cannot_restore_it(): void
     {
         $store = Store::factory()->create();
         $manager = User::factory()->manager($store)->create();
+        $admin = User::factory()->superAdmin()->create();
         $trainee = Trainee::factory()->forStore($store)->create();
         $trainee->managers()->attach($manager);
 
-        $this->actingAs($manager)
+        // Managers must go through an archive request (see
+        // TraineeArchiveRequestTest); archiving directly is admin only.
+        $this->actingAs($admin)
             ->patch(route('trainees.archive', $trainee))
             ->assertSessionHasNoErrors();
 
         $trainee->refresh();
         $this->assertTrue($trainee->isArchived());
-        $this->assertSame($manager->id, $trainee->archived_by);
+        $this->assertSame($admin->id, $trainee->archived_by);
 
         // Once a trainee is History, only an admin may bring them back —
         // a manager is view-only from here on.

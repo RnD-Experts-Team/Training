@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Training;
 
+use App\Enums\ArchiveRequestStatus;
 use App\Enums\Position;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
@@ -34,11 +35,12 @@ class TraineeController extends Controller
         $storeId = $user->resolveStoreFilter($request->integer('store') ?: null);
         $tab = $request->query('tab') === 'archived' ? 'archived' : 'active';
 
-        $visible = Trainee::visibleTo($user)->inStore($storeId);
+        $visible = Trainee::visibleTo($user)->inStore($storeId)->onRoster();
 
         $trainees = (clone $visible)
             ->when($tab === 'archived', fn ($query) => $query->archived(), fn ($query) => $query->active())
             ->with('store')
+            ->withExists(['archiveRequests as archive_pending' => fn ($query) => $query->pending()])
             ->orderBy('name')
             ->get();
 
@@ -51,6 +53,7 @@ class TraineeController extends Controller
                 'position' => $trainee->position,
                 'store' => $trainee->store->only(['id', 'name']),
                 'stats' => $stats[$trainee->id],
+                'archive_pending' => (bool) $trainee->archive_pending,
             ])->all(),
             'stores' => $canChooseStore
                 ? ($user->isSuperAdmin() ? Store::orderBy('name')->get(['id', 'name']) : $user->stores()->orderBy('stores.name')->get(['stores.id', 'stores.name']))
@@ -120,12 +123,22 @@ class TraineeController extends Controller
         return to_route('trainees.show', $trainee);
     }
 
-    public function show(Request $request, Trainee $trainee, TraineeProgress $progress): Response
+    public function show(Request $request, Trainee $trainee, TraineeProgress $progress): Response|RedirectResponse
     {
         $this->authorize('view', $trainee);
 
-        $trainee->load('store', 'managers:id,name', 'archivedBy:id,name');
+        // Employees added straight into the Development Zone aren't trainees —
+        // they follow only their development plan, never the full curriculum.
+        if ($trainee->development_only) {
+            return to_route('development-zone.show', $trainee);
+        }
+
+        $trainee->load(
+            'store', 'managers:id,name', 'archivedBy:id,name',
+            'latestArchiveRequest.requester:id,name', 'latestArchiveRequest.reviewer:id,name',
+        );
         $isSuperAdmin = $request->user()->isSuperAdmin();
+        $archiveRequest = $trainee->latestArchiveRequest;
         $canShareQuizLinks = $request->user()->can('shareQuizLink', $trainee);
 
         return Inertia::render('training/trainees/show', [
@@ -139,6 +152,18 @@ class TraineeController extends Controller
                 'archived_at' => $trainee->archived_at?->toIso8601String(),
                 'archived_by' => $trainee->archivedBy?->only(['id', 'name']),
             ],
+            'archiveRequest' => $archiveRequest && ! $trainee->isArchived() ? [
+                'id' => $archiveRequest->id,
+                'status' => $archiveRequest->status->value,
+                'reason' => $archiveRequest->reason,
+                'review_note' => $archiveRequest->review_note,
+                'requested_by' => $archiveRequest->requester?->only(['id', 'name']),
+                'reviewed_by' => $archiveRequest->reviewer?->only(['id', 'name']),
+                'created_at' => $archiveRequest->created_at->toIso8601String(),
+                'reviewed_at' => $archiveRequest->reviewed_at?->toIso8601String(),
+            ] : null,
+            'canArchive' => ! $trainee->isArchived() && $request->user()->can('archive', $trainee),
+            'canRequestArchive' => ! $isSuperAdmin && $request->user()->can('requestArchive', $trainee),
             'progress' => $progress->detail($trainee, $canShareQuizLinks),
             'canShareQuizLinks' => $canShareQuizLinks,
             'canManage' => $request->user()->can('update', $trainee),
@@ -232,15 +257,26 @@ class TraineeController extends Controller
      * Retire a trainee from the active roster. Nothing is deleted — their
      * full evaluation history stays intact and reachable under the Archived
      * tab (and in Reports, when "include archived" is checked).
+     *
+     * Admin only — managers go through an archive request instead. Archiving
+     * directly also settles any request still waiting on this trainee.
      */
     public function archive(Request $request, Trainee $trainee): RedirectResponse
     {
-        $this->authorize('update', $trainee);
+        $this->authorize('archive', $trainee);
 
-        $trainee->update([
-            'archived_at' => now(),
-            'archived_by' => $request->user()->id,
-        ]);
+        DB::transaction(function () use ($request, $trainee): void {
+            $trainee->update([
+                'archived_at' => now(),
+                'archived_by' => $request->user()->id,
+            ]);
+
+            $trainee->archiveRequests()->pending()->update([
+                'status' => ArchiveRequestStatus::Approved,
+                'reviewed_by' => $request->user()->id,
+                'reviewed_at' => now(),
+            ]);
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Trainee archived.')]);
 

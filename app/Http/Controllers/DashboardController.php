@@ -36,7 +36,7 @@ class DashboardController extends Controller
                     ? Store::whereKey($storeId)->first()?->managers()->count() ?? 0
                     : User::count(),
                 'stores' => $storeId ? 1 : Store::count(),
-                'trainees' => Trainee::query()->inStore($storeId)->active()->count(),
+                'trainees' => Trainee::query()->inStore($storeId)->active()->onRoster()->count(),
                 'sections' => Section::published()->count(),
                 'items' => ChecklistItem::whereHas('category.section', fn ($query) => $query->published())->count(),
             ],
@@ -49,7 +49,7 @@ class DashboardController extends Controller
 
     private function managerDashboard(User $user, TraineeProgress $progress, ?int $storeId): Response
     {
-        $trainees = Trainee::visibleTo($user)->inStore($storeId)->active()->with('store:id,name')->orderBy('name')->get();
+        $trainees = Trainee::visibleTo($user)->inStore($storeId)->active()->onRoster()->with('store:id,name')->orderBy('name')->get();
         $stats = $progress->rosterStats($trainees->pluck('id'));
 
         // The countable total is global, so read it from the source rather than
@@ -87,7 +87,7 @@ class DashboardController extends Controller
      * their own curated plan — the Dashboard's Development Zone panel.
      *
      * @param  Builder<Trainee>  $scope  Already scoped to who/where this viewer may see.
-     * @return Collection<int, array{id: int, name: string, position: string|null, store: array{id: int, name: string}, status: string, stats: array{completed: int, total: int}}>
+     * @return Collection<int, array{id: int, name: string, position: string|null, store: array{id: int, name: string}, status: string, development_only: bool, stats: array{completed: int, total: int}}>
      */
     private function developmentZone(Builder $scope, TraineeProgress $progress): Collection
     {
@@ -100,6 +100,7 @@ class DashboardController extends Controller
             'position' => $trainee->position,
             'store' => $trainee->store->only(['id', 'name']),
             'status' => $trainee->development_status->value,
+            'development_only' => $trainee->development_only,
             'stats' => $stats[$trainee->id] ?? ['completed' => 0, 'total' => 0],
         ])->values();
     }

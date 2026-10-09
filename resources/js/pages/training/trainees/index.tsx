@@ -3,6 +3,7 @@ import { Plus, Users } from 'lucide-react';
 import Heading from '@/components/heading';
 import { CompletionBar } from '@/components/training/completion-bar';
 import { RatingMeter } from '@/components/training/rating-meter';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -150,8 +151,18 @@ export default function TraineesIndex() {
                                         className="flex flex-col gap-3 p-4 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:gap-4"
                                     >
                                         <div className="min-w-0 sm:flex-1">
-                                            <p className="truncate font-medium">
-                                                {trainee.name}
+                                            <p className="flex items-center gap-2 font-medium">
+                                                <span className="truncate">
+                                                    {trainee.name}
+                                                </span>
+                                                {trainee.archive_pending && (
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="shrink-0 text-amber-600 dark:text-amber-400"
+                                                    >
+                                                        Archive pending
+                                                    </Badge>
+                                                )}
                                             </p>
                                             <p className="truncate text-xs text-muted-foreground">
                                                 {[

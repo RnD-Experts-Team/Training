@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EvaluationGrade;
 use Database\Factories\DevelopmentEvaluationFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,11 +15,16 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $trainee_id
  * @property int|null $evaluated_by
+ * @property bool $is_reassessment
+ * @property EvaluationGrade|null $grade
+ * @property int|null $points
  * @property string|null $notes
  * @property Carbon $submitted_at
  * @property-read Trainee $trainee
  * @property-read User|null $evaluator
  * @property-read Collection<int, DevelopmentEvaluationRating> $ratings
+ * @property-read Collection<int, DevelopmentEvaluationAnswer> $answers
+ * @property-read Collection<int, DevelopmentSkillScore> $skillScores
  */
 class DevelopmentEvaluation extends Model
 {
@@ -27,7 +33,7 @@ class DevelopmentEvaluation extends Model
 
     /** @var list<string> */
     protected $fillable = [
-        'trainee_id', 'evaluated_by', 'notes', 'submitted_at',
+        'trainee_id', 'evaluated_by', 'is_reassessment', 'grade', 'points', 'notes', 'submitted_at',
     ];
 
     /**
@@ -37,6 +43,9 @@ class DevelopmentEvaluation extends Model
     {
         return [
             'submitted_at' => 'datetime',
+            'is_reassessment' => 'boolean',
+            'grade' => EvaluationGrade::class,
+            'points' => 'integer',
         ];
     }
 
@@ -62,5 +71,25 @@ class DevelopmentEvaluation extends Model
     public function ratings(): HasMany
     {
         return $this->hasMany(DevelopmentEvaluationRating::class);
+    }
+
+    /**
+     * Raw answers to the station assessment questions.
+     *
+     * @return HasMany<DevelopmentEvaluationAnswer, $this>
+     */
+    public function answers(): HasMany
+    {
+        return $this->hasMany(DevelopmentEvaluationAnswer::class);
+    }
+
+    /**
+     * Each station/skill's star rating from this evaluation, in skill order.
+     *
+     * @return HasMany<DevelopmentSkillScore, $this>
+     */
+    public function skillScores(): HasMany
+    {
+        return $this->hasMany(DevelopmentSkillScore::class)->orderBy('id');
     }
 }

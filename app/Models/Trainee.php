@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ArchiveRequestStatus;
 use App\Enums\DevelopmentStatus;
 use Database\Factories\TraineeFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,6 +25,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $archived_at
  * @property int|null $archived_by
  * @property DevelopmentStatus|null $development_status
+ * @property bool $development_only
  * @property-read Store $store
  * @property-read User|null $creator
  * @property-read User|null $archivedBy
@@ -33,6 +35,9 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, DevelopmentEvaluation> $developmentEvaluations
  * @property-read DevelopmentEvaluation|null $latestDevelopmentEvaluation
  * @property-read Collection<int, QuizAttempt> $quizAttempts
+ * @property-read Collection<int, TraineeArchiveRequest> $archiveRequests
+ * @property-read TraineeArchiveRequest|null $pendingArchiveRequest
+ * @property-read TraineeArchiveRequest|null $latestArchiveRequest
  */
 class Trainee extends Model
 {
@@ -42,7 +47,7 @@ class Trainee extends Model
     /** @var list<string> */
     protected $fillable = [
         'store_id', 'name', 'position', 'hired_at', 'created_by',
-        'archived_at', 'archived_by', 'development_status',
+        'archived_at', 'archived_by', 'development_status', 'development_only',
     ];
 
     /**
@@ -54,6 +59,7 @@ class Trainee extends Model
             'hired_at' => 'date',
             'archived_at' => 'datetime',
             'development_status' => DevelopmentStatus::class,
+            'development_only' => 'boolean',
         ];
     }
 
@@ -147,6 +153,39 @@ class Trainee extends Model
     }
 
     /**
+     * Every request a manager has made to move this trainee to the Archive.
+     *
+     * @return HasMany<TraineeArchiveRequest, $this>
+     */
+    public function archiveRequests(): HasMany
+    {
+        return $this->hasMany(TraineeArchiveRequest::class);
+    }
+
+    /**
+     * The archive request still awaiting a super admin's review, if any —
+     * at most one may be open at a time.
+     *
+     * @return HasOne<TraineeArchiveRequest, $this>
+     */
+    public function pendingArchiveRequest(): HasOne
+    {
+        return $this->hasOne(TraineeArchiveRequest::class)
+            ->ofMany(['id' => 'max'], fn (Builder $query) => $query->where('status', ArchiveRequestStatus::Pending));
+    }
+
+    /**
+     * The most recent archive request, whatever its outcome (used to show a
+     * manager why their last request was rejected).
+     *
+     * @return HasOne<TraineeArchiveRequest, $this>
+     */
+    public function latestArchiveRequest(): HasOne
+    {
+        return $this->hasOne(TraineeArchiveRequest::class)->latestOfMany();
+    }
+
+    /**
      * Limit the query to trainees the given user is allowed to see. Super admins
      * see everyone; a manager sees every trainee in any of their assigned stores,
      * plus any trainee explicitly assigned to them (the pivot is an additive
@@ -173,13 +212,19 @@ class Trainee extends Model
     }
 
     /**
-     * Limit the query to a specific store (no-op when null).
+     * Limit the query to a specific store, or to any of several stores
+     * (no-op when null or empty).
      *
      * @param  Builder<Trainee>  $query
+     * @param  int|array<int, int>|null  $storeId
      * @return Builder<Trainee>
      */
-    public function scopeInStore(Builder $query, ?int $storeId): Builder
+    public function scopeInStore(Builder $query, int|array|null $storeId): Builder
     {
+        if (is_array($storeId)) {
+            return $query->when($storeId !== [], fn (Builder $q) => $q->whereIn('store_id', $storeId));
+        }
+
         return $query->when($storeId, fn (Builder $q) => $q->where('store_id', $storeId));
     }
 
@@ -193,6 +238,19 @@ class Trainee extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->whereNull('archived_at');
+    }
+
+    /**
+     * Real trainees only — leaves out employees a manager added straight into
+     * the Development Zone, who never appear on the Trainees roster or in
+     * roster counts and reports.
+     *
+     * @param  Builder<Trainee>  $query
+     * @return Builder<Trainee>
+     */
+    public function scopeOnRoster(Builder $query): Builder
+    {
+        return $query->where('development_only', false);
     }
 
     /**

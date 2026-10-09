@@ -130,4 +130,31 @@ class User extends Authenticatable implements PasskeyUser
 
         return $this->stores()->whereKey($requestedStoreId)->exists() ? $requestedStoreId : null;
     }
+
+    /**
+     * The multi-store version of resolveStoreFilter(), used by Reports to
+     * compare a group of stores together. Keeps only stores that exist and
+     * this user may filter by; an empty result means "all stores".
+     *
+     * @param  array<int, mixed>  $requestedStoreIds
+     * @return list<int>
+     */
+    public function resolveStoreFilters(array $requestedStoreIds): array
+    {
+        $ids = collect($requestedStoreIds)
+            ->filter(fn ($id): bool => is_numeric($id) && (int) $id > 0)
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        $allowed = $this->isSuperAdmin()
+            ? Store::whereKey($ids)->pluck('id')
+            : $this->stores()->whereIn('stores.id', $ids)->pluck('stores.id');
+
+        return $allowed->map(fn ($id): int => (int) $id)->sort()->values()->all();
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Enums\MediaType;
 use App\Models\Store;
+use App\Models\TraineeArchiveRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -51,6 +52,10 @@ class HandleInertiaRequests extends Middleware
             // Drives the sidebar's store switcher, which stays in sync with
             // whichever store filter is active on the current page.
             'storeSwitcher' => $request->user() ? $this->storeSwitcherContext($request->user()) : null,
+            // Badge on the sidebar's Archive Requests link (admins only).
+            'pendingArchiveRequests' => fn (): ?int => $request->user()?->isSuperAdmin()
+                ? TraineeArchiveRequest::pending()->count()
+                : null,
         ];
     }
 

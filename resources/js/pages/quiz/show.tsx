@@ -5,15 +5,18 @@ import {
     CheckCircle2,
     CircleDot,
     ListChecks,
+    LockKeyhole,
     ShieldAlert,
     UserCheck,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import { TraineeQuizResultView } from '@/components/training/trainee-quiz-result';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { reportMismatch, start, store } from '@/routes/quiz';
+import { close, reportMismatch, start, store } from '@/routes/quiz';
+import type { TraineeQuizResult } from '@/types/training';
 
 type QuestionType = 'single' | 'multi';
 type Option = { id: number; text: string };
@@ -67,21 +70,35 @@ export default function QuizShow() {
         traineeName,
         sectionTitle,
         completed,
+        closed,
         flaggedAsMismatch,
         questions,
         token,
+        result,
     } = usePage<{
         traineeName: string;
         sectionTitle: string | null;
         completed: boolean;
+        closed: boolean;
         flaggedAsMismatch: boolean;
         questions: Question[];
         token: string;
+        result: TraineeQuizResult | null;
     }>().props;
 
     const [identityConfirmed, setIdentityConfirmed] = useState(false);
     const [reporting, setReporting] = useState(false);
     const [starting, setStarting] = useState(false);
+    const [finishing, setFinishing] = useState(false);
+
+    function finishReview() {
+        setFinishing(true);
+        router.post(
+            close(token).url,
+            {},
+            { onFinish: () => setFinishing(false) },
+        );
+    }
 
     const form = useForm<{ answers: Record<number, number[]> }>({
         answers: {},
@@ -157,6 +174,34 @@ export default function QuizShow() {
         (question) => question.type === 'multi',
     );
 
+    if (completed && closed) {
+        return (
+            <PageShell
+                sectionTitle={sectionTitle}
+                subtitle="This quiz link is closed."
+            >
+                <div className="surface-tray animate-rise">
+                    <div className="surface-core flex flex-col items-center gap-3 p-8 text-center">
+                        <div className="flex size-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20">
+                            <LockKeyhole
+                                className="size-7"
+                                strokeWidth={1.75}
+                            />
+                        </div>
+                        <h2 className="text-base font-semibold">
+                            All done, thanks!
+                        </h2>
+                        <p className="max-w-xs text-sm text-muted-foreground">
+                            You reviewed your results and this link is now
+                            closed. Your score is with the training team. You
+                            can close this page.
+                        </p>
+                    </div>
+                </div>
+            </PageShell>
+        );
+    }
+
     if (flaggedAsMismatch) {
         return (
             <PageShell
@@ -230,9 +275,19 @@ export default function QuizShow() {
     return (
         <PageShell
             sectionTitle={sectionTitle}
-            subtitle={`Hi ${traineeName}, this should only take a minute.`}
+            subtitle={
+                completed
+                    ? `Here's how you did, ${traineeName}.`
+                    : `Hi ${traineeName}, this should only take a minute.`
+            }
         >
-            {completed ? (
+            {completed && result ? (
+                <TraineeQuizResultView
+                    result={result}
+                    onFinish={finishReview}
+                    finishing={finishing}
+                />
+            ) : completed ? (
                 <div className="surface-tray animate-rise">
                     <div className="surface-core flex flex-col items-center gap-3 p-8 text-center">
                         <div className="flex size-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20">

@@ -3,6 +3,7 @@ import {
     ArchiveRestore,
     ArrowLeft,
     Archive as ArchiveIcon,
+    Hourglass,
     Pencil,
     Trash2,
     Users,
@@ -12,6 +13,7 @@ import { ChecklistSections } from '@/components/training/checklist-sections';
 import { CompletionBar } from '@/components/training/completion-bar';
 import { ConfirmDeleteDialog } from '@/components/training/confirm-delete-dialog';
 import { RatingMeter } from '@/components/training/rating-meter';
+import { RequestArchiveDialog } from '@/components/training/request-archive-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,7 +27,11 @@ import {
     show,
 } from '@/routes/trainees';
 import type { BreadcrumbItem } from '@/types';
-import type { TraineeDetail, TraineeProgressData } from '@/types/training';
+import type {
+    TraineeArchiveRequestSummary,
+    TraineeDetail,
+    TraineeProgressData,
+} from '@/types/training';
 
 export default function TraineeShow() {
     const {
@@ -36,6 +42,9 @@ export default function TraineeShow() {
         canDelete,
         canAssignManagers,
         availableManagers,
+        archiveRequest,
+        canArchive,
+        canRequestArchive,
     } = usePage<{
         trainee: TraineeDetail;
         progress: TraineeProgressData;
@@ -44,6 +53,9 @@ export default function TraineeShow() {
         canDelete: boolean;
         canAssignManagers: boolean;
         availableManagers: { id: number; name: string }[];
+        archiveRequest: TraineeArchiveRequestSummary | null;
+        canArchive: boolean;
+        canRequestArchive: boolean;
     }>().props;
 
     const { stats } = progress;
@@ -112,6 +124,48 @@ export default function TraineeShow() {
                     </Alert>
                 )}
 
+                {archiveRequest?.status === 'pending' && (
+                    <Alert>
+                        <Hourglass />
+                        <AlertTitle>
+                            Archive requested — awaiting admin review
+                        </AlertTitle>
+                        <AlertDescription>
+                            <p>
+                                {archiveRequest.requested_by
+                                    ? `${archiveRequest.requested_by.name}: `
+                                    : ''}
+                                “{archiveRequest.reason}”
+                            </p>
+                            {canArchive && (
+                                <p>
+                                    Review it from the Archive Requests page, or
+                                    archive directly below.
+                                </p>
+                            )}
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                {archiveRequest?.status === 'rejected' && (
+                    <Alert>
+                        <ArchiveIcon />
+                        <AlertTitle>
+                            Archive request not approved
+                            {archiveRequest.reviewed_by
+                                ? ` by ${archiveRequest.reviewed_by.name}`
+                                : ''}
+                        </AlertTitle>
+                        <AlertDescription>
+                            <p>
+                                {archiveRequest.review_note
+                                    ? `“${archiveRequest.review_note}”`
+                                    : 'This trainee stays on the active roster.'}
+                            </p>
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 <Card className="gap-4 p-5">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
@@ -151,7 +205,7 @@ export default function TraineeShow() {
                                     }
                                 />
                             )}
-                            {!isArchived && canManage && (
+                            {canArchive && (
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -169,6 +223,18 @@ export default function TraineeShow() {
                                     <ArchiveIcon className="size-4" /> Mark
                                     complete &amp; archive
                                 </Button>
+                            )}
+                            {canRequestArchive && (
+                                <RequestArchiveDialog
+                                    traineeId={trainee.id}
+                                    traineeName={trainee.name}
+                                    trigger={
+                                        <Button variant="outline" size="sm">
+                                            <ArchiveIcon className="size-4" />{' '}
+                                            Move to Archive
+                                        </Button>
+                                    }
+                                />
                             )}
                             {canManage && (
                                 <Button variant="outline" size="sm" asChild>

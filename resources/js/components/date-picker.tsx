@@ -45,6 +45,7 @@ export function DatePicker({
     invalid = false,
     fromYear = new Date().getFullYear() - 10,
     toYear = new Date().getFullYear() + 1,
+    maxDate,
 }: {
     id?: string;
     value: string;
@@ -53,6 +54,8 @@ export function DatePicker({
     invalid?: boolean;
     fromYear?: number;
     toYear?: number;
+    /** The latest pickable day (e.g. today, for a hire date). */
+    maxDate?: Date;
 }) {
     const [open, setOpen] = useState(false);
     const selected = parseDate(value);
@@ -94,7 +97,15 @@ export function DatePicker({
                     onSelect={choose}
                     captionLayout="dropdown"
                     startMonth={new Date(fromYear, 0)}
-                    endMonth={new Date(toYear, 11)}
+                    endMonth={
+                        maxDate
+                            ? new Date(
+                                  maxDate.getFullYear(),
+                                  maxDate.getMonth(),
+                              )
+                            : new Date(toYear, 11)
+                    }
+                    disabled={maxDate ? { after: maxDate } : undefined}
                     autoFocus
                 />
                 <div className="flex items-center justify-between gap-2 border-t border-border/60 p-2">

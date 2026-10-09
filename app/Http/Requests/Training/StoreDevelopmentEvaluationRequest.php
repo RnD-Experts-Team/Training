@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\Training;
 
-use App\Models\DevelopmentEvaluationCriterion;
+use App\Enums\EvaluationGrade;
+use App\Services\Training\StationAssessment;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Collection;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Validator;
+use Illuminate\Validation\Rules\Enum;
 
+/**
+ * The manager's Development Zone evaluation: an overall grade and points,
+ * plus an answer to every station assessment question.
+ */
 class StoreDevelopmentEvaluationRequest extends FormRequest
 {
     /**
@@ -16,52 +19,52 @@ class StoreDevelopmentEvaluationRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'grade' => ['required', new Enum(EvaluationGrade::class)],
+            'points' => ['required', 'integer', 'between:0,100'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'ratings' => ['required', 'array'],
-            'ratings.*.criterion_id' => ['required', 'integer', 'distinct', Rule::in($this->activeCriterionIds())],
-            'ratings.*.rating' => ['required', 'integer', 'between:1,5'],
+            ...app(StationAssessment::class)->answerRules(),
         ];
     }
 
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function (Validator $validator): void {
-            $submitted = collect($this->input('ratings', []))
-                ->pluck('criterion_id')
-                ->filter(fn ($id) => is_numeric($id))
-                ->map(fn ($id) => (int) $id)
-                ->sort()
-                ->values();
-
-            $required = $this->activeCriterionIds()->sort()->values();
-
-            if ($submitted->all() !== $required->all()) {
-                $validator->errors()->add('ratings', __('Rate every current evaluation question.'));
-            }
-        });
-    }
-
     /**
-     * @return Collection<int, int>
+     * @return array<string, string>
      */
-    private function activeCriterionIds(): Collection
+    public function messages(): array
     {
-        return DevelopmentEvaluationCriterion::active()->pluck('id');
+        return [
+            'grade.required' => __('Please choose an evaluation grade.'),
+            'points.required' => __('Please enter the overall points.'),
+            'points.between' => __('Overall points must be between 0 and 100.'),
+            'answers.*.required' => __('Answer every assessment question.'),
+            'answers.*.between' => __('That answer is out of range.'),
+        ];
     }
 
     /**
-     * @return array{notes: string|null, ratings: array<int, array{criterion_id: int, rating: int}>}
+     * @return array{notes: string|null, grade: string, points: int, answers: array<int, int>}
      */
     public function evaluationData(): array
     {
         return [
             'notes' => $this->validated('notes'),
-            'ratings' => collect($this->validated('ratings'))
-                ->map(fn (array $rating): array => [
-                    'criterion_id' => (int) $rating['criterion_id'],
-                    'rating' => (int) $rating['rating'],
-                ])
-                ->all(),
+            'grade' => $this->validated('grade'),
+            'points' => (int) $this->validated('points'),
+            'answers' => self::answersFrom($this->validated('answers') ?? []),
         ];
+    }
+
+    /**
+     * @param  array<int|string, mixed>  $answers
+     * @return array<int, int>
+     */
+    public static function answersFrom(array $answers): array
+    {
+        $normalized = [];
+
+        foreach ($answers as $questionId => $value) {
+            $normalized[(int) $questionId] = (int) $value;
+        }
+
+        return $normalized;
     }
 }

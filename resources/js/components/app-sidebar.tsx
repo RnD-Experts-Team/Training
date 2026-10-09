@@ -3,6 +3,7 @@ import {
     BarChart3,
     // BookOpen,
     Building2,
+    Archive,
     ClipboardList,
     FileQuestion,
     // FolderGit2,
@@ -29,6 +30,7 @@ import { management } from '@/routes/admin';
 import { index as developmentZoneIndex } from '@/routes/development-zone';
 import { index as reportsIndex } from '@/routes/reports';
 import { index as traineesIndex } from '@/routes/trainees';
+import { index as archiveRequestsIndex } from '@/routes/training/archive-requests';
 import { index as quizResultsIndex } from '@/routes/training/quiz-results';
 import { index as sectionsIndex } from '@/routes/training/sections';
 import type { Auth, NavItem } from '@/types';
@@ -36,7 +38,10 @@ import type { Auth, NavItem } from '@/types';
 const footerNavItems: NavItem[] = [];
 
 export function AppSidebar() {
-    const { auth } = usePage<{ auth: Auth }>().props;
+    const { auth, pendingArchiveRequests } = usePage<{
+        auth: Auth;
+        pendingArchiveRequests: number | null;
+    }>().props;
 
     const mainNavItems: NavItem[] = [
         {
@@ -77,6 +82,12 @@ export function AppSidebar() {
                 title: 'Quiz Results',
                 href: quizResultsIndex(),
                 icon: FileQuestion,
+            },
+            {
+                title: 'Archive Requests',
+                href: archiveRequestsIndex(),
+                icon: Archive,
+                badge: pendingArchiveRequests || null,
             },
         );
     }
